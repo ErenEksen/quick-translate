@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Quick Translate
+GenericName=Translator
+Comment=Translate the selected text in a popup at the cursor
+Exec=quick-translate --settings
+Icon=io.github.quicktranslate.QuickTranslate
+Terminal=false
+Categories=Utility;
+Keywords=translate;translation;deepl;language;
+X-AppImage-Version=@VERSION@

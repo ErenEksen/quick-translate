@@ -1,0 +1,21 @@
+---
+source: crates/quick-translate-platform/tests/shortcut_snippet.rs
+expression: rendered
+---
+# Wayfire
+Add these lines to the `[command]` section of ~/.config/wayfire.ini (create the section if it is missing, and make sure `command` is in `plugins` under `[core]`). Wayfire reloads it automatically.
+
+binding_quick_translate = <ctrl> <alt> KEY_C
+command_quick_translate = /home/you/Applications/QuickTranslate-x86_64.AppImage --toggle
+---
+# Wayfire
+Add these lines to the `[command]` section of ~/.config/wayfire.ini (create the section if it is missing, and make sure `command` is in `plugins` under `[core]`). Wayfire reloads it automatically.
+
+binding_quick_translate = <ctrl> <alt> KEY_C
+command_quick_translate = quick-translate --toggle
+---
+# Wayfire
+Add these lines to the `[command]` section of ~/.config/wayfire.ini (create the section if it is missing, and make sure `command` is in `plugins` under `[core]`). Wayfire reloads it automatically.
+
+binding_quick_translate = <ctrl> <alt> KEY_C
+command_quick_translate = '/home/you/My Apps/Quick Translate'\''s.AppImage' --toggle

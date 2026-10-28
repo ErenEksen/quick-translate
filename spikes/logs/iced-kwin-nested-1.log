@@ -1,0 +1,11 @@
+[    0.43 ms] env: WAYLAND_DISPLAY=Some("qt-kwin-0") XDG_CURRENT_DESKTOP=Some("KDE") WGPU_BACKEND=None ICED_BACKEND=None
+[    3.93 ms] outputs: ["Virtual-0"]  opts: Opts { cycles: 1, input_region: false, keepalive: false, kb_late: false, life_ms: 1500 }
+[   10.44 ms] === cycle 1 show: creating 1 overlay(s)
+[   10.51 ms] requested overlay Id(1) on Virtual-0
+[  644.04 ms] first view() Id(1) (Virtual-0) +633.53 ms
+[  650.07 ms] 50 ms fallback fired in cycle 1: no pointer position yet -> center on Some(Id(1))
+[  650.12 ms] first RedrawRequested Id(1) (Virtual-0) +639.62 ms
+[  650.13 ms] Opened Id(1) (Virtual-0) size Size { width: 1920.0, height: 1080.0 } +639.63 ms
+[  807.28 ms] subscription: mouse::Event::CursorEntered on Id(1) (Virtual-0) (no position in event) +796.77 ms
+[ 1500.94 ms] [safety] 1500 ms elapsed, hard exit
+timeout: the monitored command dumped core

@@ -1,0 +1,23 @@
+##### --keepalive
+[    2.80 ms] outputs: ["HEADLESS-1", "HEADLESS-2"]  opts: Opts { cycles: 1, input_region: false, keepalive: true, kb_late: false, sway_rebase: false, life_ms: 2500 }
+MESA: error: ZINK: failed to choose pdev
+MESA: error: ZINK: failed to choose pdev
+[  327.84 ms] Opened Id(2) (HEADLESS-1) size Size { width: 1920.0, height: 1080.0 } +23.48 ms
+[  327.85 ms] Opened Id(3) (HEADLESS-2) size Size { width: 1280.0, height: 720.0 } +23.49 ms
+[  334.25 ms] Focused Id(2) (HEADLESS-1) first=true +29.89 ms
+[  334.29 ms] Focused Id(3) (HEADLESS-2) first=true +29.93 ms
+[  379.68 ms] 50 ms fallback fired in cycle 1: no pointer position yet -> center on Some(Id(2))
+[  575.38 ms] Focused Id(2) (HEADLESS-1) first=false +271.02 ms
+[ 2203.74 ms] exit
+##### --keepalive --sway-rebase
+[    3.86 ms] outputs: ["HEADLESS-1", "HEADLESS-2"]  opts: Opts { cycles: 1, input_region: false, keepalive: true, kb_late: false, sway_rebase: true, life_ms: 2500 }
+MESA: error: ZINK: failed to choose pdev
+MESA: error: ZINK: failed to choose pdev
+[  329.15 ms] Opened Id(2) (HEADLESS-1) size Size { width: 1920.0, height: 1080.0 } +24.42 ms
+[  329.43 ms] spawned `swaymsg seat - cursor move 0 0`: ok=true
+[  329.45 ms] Opened Id(3) (HEADLESS-2) size Size { width: 1280.0, height: 720.0 } +24.71 ms
+[  336.50 ms] Focused Id(2) (HEADLESS-1) first=true +31.77 ms
+[  336.52 ms] FIRST pointer position via Entered on Id(3) (HEADLESS-2) at (580.0, 300.0) +31.78 ms
+[  336.52 ms] panel at Some(Point { x: 560.0, y: 312.0 }) (surface Size { width: 1280.0, height: 720.0 })
+[  360.41 ms] Focused Id(3) (HEADLESS-2) first=true +55.68 ms
+[ 2204.87 ms] exit

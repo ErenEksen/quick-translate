@@ -1,0 +1,12 @@
+##### copy-test 
+[  376.46 ms] FIRST pointer position via Entered on Id(1) (Virtual-0) at (500.0, 400.0) +368.23 ms
+[  376.47 ms] copy-test: clipboard::write("qt-probe-clipboard-OK"), overlay removed in 200 ms, daemon stays alive
+[  635.77 ms] Closed Id(1) (Virtual-0) +627.53 ms
+wl-paste @1.6s (overlay already removed): 'Nothing is copied'
+[ 2704.62 ms] exit
+##### copy-test --keepalive
+[  440.63 ms] FIRST pointer position via Entered on Id(2) (Virtual-0) at (500.0, 400.0) +14.37 ms
+[  440.64 ms] copy-test: clipboard::write("qt-probe-clipboard-OK"), overlay removed in 200 ms, daemon stays alive
+[  648.79 ms] Closed Id(2) (Virtual-0) +222.54 ms
+wl-paste @1.6s (overlay already removed): 'qt-probe-clipboard-OK'
+[ 2703.02 ms] exit

@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pkg-config libwayland-dev libxkbcommon-dev libvulkan-dev \
+            dbus dbus-x11 gnome-keyring sway wl-clipboard
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Start headless sway
+        run: scripts/headless-sway.sh start >/dev/null && scripts/headless-sway.sh github-env >> "$GITHUB_ENV"
+      - name: Tests
+        run: cargo test --workspace --locked
+      - name: Stop headless sway
+        if: always()
+        run: scripts/headless-sway.sh stop

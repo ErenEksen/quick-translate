@@ -1,0 +1,98 @@
+##### --layer
+[     0.14 ms] env: WAYLAND_DISPLAY=Some("qt-kwin-0") XMODIFIERS=None GTK_IM_MODULE=None QT_IM_MODULE=None
+[     1.39 ms] shell=layer surface: click/type into the editor; IME events and text changes are logged
+[07:56:14.965399]  -> zwp_text_input_manager_v3#17.get_text_input(new id zwp_text_input_v3#19, wl_seat#7)
+[07:56:15.620072] zwp_text_input_v3#19.enter(wl_surface#23)
+[07:56:15.620871]  -> zwp_text_input_v3#19.enable()
+[07:56:15.620878]  -> zwp_text_input_v3#19.set_content_type(0, 0)
+[07:56:15.620882]  -> zwp_text_input_v3#19.commit()
+[07:56:15.620885]  -> zwp_text_input_v3#19.set_content_type(0, 0)
+[07:56:15.620888]  -> zwp_text_input_v3#19.commit()
+[07:56:15.620891]  -> zwp_text_input_v3#19.set_cursor_rectangle(17, 46, 1, 21)
+[07:56:15.620895]  -> zwp_text_input_v3#19.commit()
+[07:56:15.621807] zwp_text_input_v3#19.done(1)
+[07:56:15.621821] zwp_text_input_v3#19.done(2)
+[07:56:15.621825] zwp_text_input_v3#19.done(3)
+[  1542.57 ms] input_method event: Preedit("", None)
+[  1543.71 ms] text now: "ü"
+[07:56:15.635469]  -> zwp_text_input_v3#19.set_content_type(0, 0)
+[07:56:15.635474]  -> zwp_text_input_v3#19.commit()
+[07:56:15.635477]  -> zwp_text_input_v3#19.set_cursor_rectangle(27, 46, 1, 21)
+[07:56:15.635479]  -> zwp_text_input_v3#19.commit()
+[07:56:15.636267] zwp_text_input_v3#19.done(4)
+[07:56:15.636270] zwp_text_input_v3#19.done(5)
+[  1594.19 ms] text now: "üş"
+[07:56:15.673586]  -> zwp_text_input_v3#19.set_content_type(0, 0)
+[07:56:15.673593]  -> zwp_text_input_v3#19.commit()
+[07:56:15.673597]  -> zwp_text_input_v3#19.set_cursor_rectangle(34, 46, 1, 21)
+[07:56:15.673601]  -> zwp_text_input_v3#19.commit()
+[07:56:15.674976] zwp_text_input_v3#19.done(6)
+[07:56:15.674989] zwp_text_input_v3#19.done(7)
+[  1643.74 ms] text now: "üşı"
+[07:56:15.723171]  -> zwp_text_input_v3#19.set_content_type(0, 0)
+[07:56:15.723178]  -> zwp_text_input_v3#19.commit()
+[07:56:15.723182]  -> zwp_text_input_v3#19.set_cursor_rectangle(38, 46, 1, 21)
+[07:56:15.723185]  -> zwp_text_input_v3#19.commit()
+[07:56:15.724398] zwp_text_input_v3#19.done(8)
+[07:56:15.724409] zwp_text_input_v3#19.done(9)
+[  1694.18 ms] text now: "üşıi"
+[07:56:15.773574]  -> zwp_text_input_v3#19.set_content_type(0, 0)
+[07:56:15.773580]  -> zwp_text_input_v3#19.commit()
+[07:56:15.773584]  -> zwp_text_input_v3#19.set_cursor_rectangle(43, 46, 1, 21)
+##### --window
+[     0.15 ms] env: WAYLAND_DISPLAY=Some("qt-kwin-0") XMODIFIERS=None GTK_IM_MODULE=None QT_IM_MODULE=None
+[07:56:17.734634]  -> zwp_text_input_manager_v3#17.get_text_input(new id zwp_text_input_v3#21, wl_seat#9)
+[     9.08 ms] shell=winit window: click/type into the editor; IME events and text changes are logged
+[07:56:18.287380] zwp_text_input_v3#21.enter(wl_surface#29)
+[07:56:18.365858]  -> zwp_text_input_v3#21.enable()
+[07:56:18.365864]  -> zwp_text_input_v3#21.set_content_type(0, 0)
+[07:56:18.365867]  -> zwp_text_input_v3#21.commit()
+[07:56:18.365875]  -> zwp_text_input_v3#21.set_cursor_rectangle(17, 46, 1, 21)
+[07:56:18.365878]  -> zwp_text_input_v3#21.commit()
+[07:56:18.365879]  -> zwp_text_input_v3#21.set_content_type(0, 0)
+[07:56:18.365880]  -> zwp_text_input_v3#21.commit()
+[07:56:18.366722] zwp_text_input_v3#21.done(1)
+[07:56:18.366727] zwp_text_input_v3#21.done(2)
+[07:56:18.366728] zwp_text_input_v3#21.done(3)
+[   639.25 ms] input_method event: Opened
+[   639.26 ms] input_method event: Preedit("", None)
+[  1500.88 ms] text now: "ğ"
+[07:56:19.228804]  -> zwp_text_input_v3#21.set_cursor_rectangle(26, 46, 1, 21)
+[07:56:19.228815]  -> zwp_text_input_v3#21.commit()
+[07:56:19.228820]  -> zwp_text_input_v3#21.set_content_type(0, 0)
+[07:56:19.228824]  -> zwp_text_input_v3#21.commit()
+[07:56:19.231423] zwp_text_input_v3#21.done(4)
+[07:56:19.231439] zwp_text_input_v3#21.done(5)
+[  1551.62 ms] text now: "ğü"
+[07:56:19.279477]  -> zwp_text_input_v3#21.set_cursor_rectangle(36, 46, 1, 21)
+[07:56:19.279485]  -> zwp_text_input_v3#21.commit()
+[07:56:19.279490]  -> zwp_text_input_v3#21.set_content_type(0, 0)
+[07:56:19.279494]  -> zwp_text_input_v3#21.commit()
+[07:56:19.280955] zwp_text_input_v3#21.done(6)
+[07:56:19.280968] zwp_text_input_v3#21.done(7)
+[  1601.33 ms] text now: "ğüş"
+[07:56:19.329201]  -> zwp_text_input_v3#21.set_cursor_rectangle(43, 46, 1, 21)
+[07:56:19.329211]  -> zwp_text_input_v3#21.commit()
+[07:56:19.329216]  -> zwp_text_input_v3#21.set_content_type(0, 0)
+[07:56:19.329220]  -> zwp_text_input_v3#21.commit()
+[07:56:19.330924] zwp_text_input_v3#21.done(8)
+[07:56:19.330939] zwp_text_input_v3#21.done(9)
+[  1651.04 ms] text now: "ğüşı"
+[07:56:19.378903]  -> zwp_text_input_v3#21.set_cursor_rectangle(47, 46, 1, 21)
+[07:56:19.378915]  -> zwp_text_input_v3#21.commit()
+[   528.94 ms] input_method event: Preedit("", None)
+[  1500.24 ms] text now: "ğ"
+[  1550.71 ms] text now: "ğü"
+[  1600.62 ms] text now: "ğüş"
+[  1650.33 ms] text now: "ğüşı"
+[  1700.11 ms] text now: "ğüşıi"
+[  1750.89 ms] text now: "ğüşıic"
+[  2501.54 ms] exit; final text: "ğüşıic"
+[   415.88 ms] input_method event: Preedit("", None)
+[  1499.80 ms] text now: "ğ"
+[  1550.39 ms] text now: "ğü"
+[  1599.99 ms] text now: "ğüş"
+[  1649.58 ms] text now: "ğüşı"
+[  1700.34 ms] text now: "ğüşıi"
+[  1749.99 ms] text now: "ğüşıic"
+[  2500.67 ms] exit; final text: "ğüşıic"

@@ -1,0 +1,14 @@
+[package]
+name = "overlay-probe"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "Throwaway spike (tasks.md 2.1 + 2.2): iced_layershell per-output full-screen overlay, first-pointer-wins placement, dynamic create/destroy, input region, keyboard focus."
+
+[workspace]
+
+[dependencies]
+iced = { version = "0.14", default-features = false, features = ["wgpu", "tiny-skia", "crisp", "wayland", "tokio", "advanced"] }
+iced_layershell = { version = "0.19", default-features = false }
+tokio = { version = "1", features = ["time"] }
+wayland-client = "0.31"

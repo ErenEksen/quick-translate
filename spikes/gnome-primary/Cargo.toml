@@ -1,0 +1,21 @@
+[package]
+name = "gnome-primary-spike"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "Week-1 spike 2.5: focus-time PRIMARY read in a winit window mapped with an activation token"
+
+# Standalone: the root workspace excludes spikes/.
+[workspace]
+
+[dependencies]
+# Same stack iced 0.14 uses on Wayland: winit 0.30 + window_clipboard -> clipboard_wayland -> smithay-clipboard 0.7.
+winit = { version = "0.30", default-features = false, features = ["rwh_06", "wayland", "wayland-dlopen", "wayland-csd-adwaita"] }
+smithay-clipboard = "0.7"
+softbuffer = { version = "0.4", default-features = false, features = ["wayland", "wayland-dlopen"] }
+# Optional in-process portal trigger (--portal), like the real daemon.
+ashpd = { version = "0.13", default-features = false, features = ["tokio", "global_shortcuts"] }
+zbus = { version = "5", default-features = false, features = ["tokio"] }
+tokio = { version = "1.53", features = ["rt", "macros", "time"] }
+futures-util = "0.3"
+anyhow = "1"

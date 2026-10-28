@@ -1,0 +1,13 @@
+[    4.40 ms] outputs: ["winit"]  opts: Opts { cycles: 2, input_region: false, keepalive: true, kb_late: false, sway_rebase: false, life_ms: 2500 }
+MESA: error: ZINK: failed to choose pdev
+MESA: error: ZINK: failed to choose pdev
+[  306.18 ms] === cycle 1 show: creating 1 overlay(s)
+[  499.65 ms] Opened Id(2) (winit) size Size { width: 1914.0, height: 1040.0 } +193.44 ms
+[  551.29 ms] 50 ms fallback fired in cycle 1: no pointer position yet -> center on Some(Id(2))
+[  752.46 ms] cycle 1 hide: removing 1 surface(s)
+[  903.95 ms] === cycle 2 show: creating 1 overlay(s)
+[ 1135.39 ms] Opened Id(3) (winit) size Size { width: 1914.0, height: 1040.0 } +231.40 ms
+[ 1144.86 ms] FIRST pointer position via Entered on Id(3) (winit) at (498.4, 385.2) +240.88 ms
+[ 1144.88 ms] panel at Some(Point { x: 510.4375, y: 397.1836 }) (surface Size { width: 1914.0, height: 1040.0 })
+[ 1346.05 ms] cycle 2 hide: removing 1 surface(s)
+[ 1497.51 ms] exit

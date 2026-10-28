@@ -1,0 +1,15 @@
+$ /home/axis/Applications/quick-translate/target/agent-portal-spike/debug/portal-shortcuts-spike --probe
+== probe (non-interactive; BindShortcuts is NOT called) ==
+[env] XDG_CURRENT_DESKTOP=Some("KDE") WAYLAND_DISPLAY=Some("wayland-1") sandboxed=false
+[desktop] wrote /home/axis/.local/share/applications/io.github.quicktranslate.QuickTranslate.Spike.desktop
+[dbus] unique name Some(":1.31471")
+[registry] Register(io.github.quicktranslate.QuickTranslate.Spike) OK in 8.4ms
+[registry] org.freedesktop.host.portal.Registry version = 1
+[registry] second Register rejected as documented: org.freedesktop.portal.Error.Failed: Could not register app ID: Connection already associated with an application ID
+[gs] org.freedesktop.portal.GlobalShortcuts version = 2 (3.9ms)
+[gs] CreateSession OK in 19.2ms: Session("/org/freedesktop/portal/desktop/session/1_31471/ashpd_HEDnp4oBuO")
+[gs] ListShortcuts OK in 9.9ms
+[list] 0 shortcuts
+[kglobalaccel] component /component/io_github_quicktranslate_QuickTranslate_Spike not present
+[gs] Session.Close OK
+== probe done; run --cleanup to remove the .desktop file ==

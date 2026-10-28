@@ -1,0 +1,105 @@
+$ target/agent-portal-spike/debug/portal-shortcuts-spike --bind --listen 32   (non-interactive: native = KDE command shortcut qt-spike-native.desktop running '--stamp'; portal = translate-selection; both fired with Component.invokeShortcut from a script that records CLOCK_MONOTONIC before each call; 15 each, alternating)
+== bind + listen ==
+[desktop] up to date: /home/axis/.local/share/applications/io.github.quicktranslate.QuickTranslate.Spike.desktop
+[sock] listening for --stamp/--evdev-log on /run/user/1000/qt-portal-spike.sock
+[registry] Register(io.github.quicktranslate.QuickTranslate.Spike) OK in 7.8ms
+[gs] version = 2
+[gs] CreateSession OK in 18.7ms
+[persisted-before-bind] id="translate-selection" description="Translate selection (Quick Translate spike)" trigger_description="Meta+Alt+T"
+[kglobalaccel] component /component/io_github_quicktranslate_QuickTranslate_Spike present, 1 shortcut(s)
+[kglobalaccel]   action="translate-selection" friendly="Translate selection (Quick Translate spike)" keys=[402653268] default=[201326659]
+[gs] BindShortcuts([translate-selection preferred_trigger="CTRL+ALT+c"]) — on first bind KDE shows a dialog; accept it
+[gs] BindShortcuts OK after 14.0ms (includes any dialog time)
+[bound] id="translate-selection" description="Translate selection (Quick Translate spike)" trigger_description="Meta+Alt+T"
+[list-after-bind] id="translate-selection" description="Translate selection (Quick Translate spike)" trigger_description="Meta+Alt+T"
+[kglobalaccel] component /component/io_github_quicktranslate_QuickTranslate_Spike present, 1 shortcut(s)
+[kglobalaccel]   action="translate-selection" friendly="Translate selection (Quick Translate spike)" keys=[402653268] default=[201326659]
+[listen] press the shortcut now; listening 32s (Ctrl+C to stop)
+STAMP (native shortcut client) pid=1162041 activation_token=PRESENT
+KGLOBALACCEL pressed component="io.github.quicktranslate.QuickTranslate.Spike" shortcut="translate-selection" ts=0ms (this spike) | now-ts: mono=83991143.9ms boot=91301294.1ms real=1792734680229.2ms (plausible base: none)
+ACTIVATED #1 id="translate-selection" portal_ts=0ms options_keys=[] activation_token=ABSENT
+  portal ts vs clocks: now-ts: mono=83991145.2ms boot=91301295.4ms real=1792734680230.5ms (plausible base: none)
+  kglobalaccel signal arrival -> portal Activated arrival: 1.29ms (kga ts=0ms, portal ts=0ms)
+STAMP (native shortcut client) pid=1162045 activation_token=PRESENT
+KGLOBALACCEL pressed component="io.github.quicktranslate.QuickTranslate.Spike" shortcut="translate-selection" ts=0ms (this spike) | now-ts: mono=83992761.6ms boot=91302911.9ms real=1792734681847.0ms (plausible base: none)
+ACTIVATED #2 id="translate-selection" portal_ts=0ms options_keys=[] activation_token=ABSENT
+  portal ts vs clocks: now-ts: mono=83992762.8ms boot=91302913.0ms real=1792734681848.1ms (plausible base: none)
+  kglobalaccel signal arrival -> portal Activated arrival: 1.19ms (kga ts=0ms, portal ts=0ms)
+STAMP (native shortcut client) pid=1162084 activation_token=PRESENT
+KGLOBALACCEL pressed component="io.github.quicktranslate.QuickTranslate.Spike" shortcut="translate-selection" ts=0ms (this spike) | now-ts: mono=83994378.7ms boot=91304528.9ms real=1792734683464.0ms (plausible base: none)
+ACTIVATED #3 id="translate-selection" portal_ts=0ms options_keys=[] activation_token=ABSENT
+  portal ts vs clocks: now-ts: mono=83994380.0ms boot=91304530.2ms real=1792734683465.3ms (plausible base: none)
+  kglobalaccel signal arrival -> portal Activated arrival: 1.31ms (kga ts=0ms, portal ts=0ms)
+STAMP (native shortcut client) pid=1162098 activation_token=PRESENT
+KGLOBALACCEL pressed component="io.github.quicktranslate.QuickTranslate.Spike" shortcut="translate-selection" ts=0ms (this spike) | now-ts: mono=83995995.3ms boot=91306145.5ms real=1792734685080.6ms (plausible base: none)
+ACTIVATED #4 id="translate-selection" portal_ts=0ms options_keys=[] activation_token=ABSENT
+  portal ts vs clocks: now-ts: mono=83995996.4ms boot=91306146.6ms real=1792734685081.7ms (plausible base: none)
+  kglobalaccel signal arrival -> portal Activated arrival: 1.11ms (kga ts=0ms, portal ts=0ms)
+STAMP (native shortcut client) pid=1162105 activation_token=PRESENT
+KGLOBALACCEL pressed component="io.github.quicktranslate.QuickTranslate.Spike" shortcut="translate-selection" ts=0ms (this spike) | now-ts: mono=83997613.2ms boot=91307763.4ms real=1792734686698.5ms (plausible base: none)
+ACTIVATED #5 id="translate-selection" portal_ts=0ms options_keys=[] activation_token=ABSENT
+  portal ts vs clocks: now-ts: mono=83997614.5ms boot=91307764.8ms real=1792734686699.9ms (plausible base: none)
+  kglobalaccel signal arrival -> portal Activated arrival: 1.34ms (kga ts=0ms, portal ts=0ms)
+STAMP (native shortcut client) pid=1162110 activation_token=PRESENT
+KGLOBALACCEL pressed component="io.github.quicktranslate.QuickTranslate.Spike" shortcut="translate-selection" ts=0ms (this spike) | now-ts: mono=83999231.1ms boot=91309381.3ms real=1792734688316.4ms (plausible base: none)
+ACTIVATED #6 id="translate-selection" portal_ts=0ms options_keys=[] activation_token=ABSENT
+  portal ts vs clocks: now-ts: mono=83999232.3ms boot=91309382.5ms real=1792734688317.6ms (plausible base: none)
+  kglobalaccel signal arrival -> portal Activated arrival: 1.18ms (kga ts=0ms, portal ts=0ms)
+STAMP (native shortcut client) pid=1162124 activation_token=PRESENT
+KGLOBALACCEL pressed component="io.github.quicktranslate.QuickTranslate.Spike" shortcut="translate-selection" ts=0ms (this spike) | now-ts: mono=84000848.4ms boot=91310998.6ms real=1792734689933.8ms (plausible base: none)
+ACTIVATED #7 id="translate-selection" portal_ts=0ms options_keys=[] activation_token=ABSENT
+  portal ts vs clocks: now-ts: mono=84000849.8ms boot=91311000.1ms real=1792734689935.2ms (plausible base: none)
+  kglobalaccel signal arrival -> portal Activated arrival: 1.41ms (kga ts=0ms, portal ts=0ms)
+STAMP (native shortcut client) pid=1162128 activation_token=PRESENT
+KGLOBALACCEL pressed component="io.github.quicktranslate.QuickTranslate.Spike" shortcut="translate-selection" ts=0ms (this spike) | now-ts: mono=84002466.1ms boot=91312616.3ms real=1792734691551.4ms (plausible base: none)
+ACTIVATED #8 id="translate-selection" portal_ts=0ms options_keys=[] activation_token=ABSENT
+  portal ts vs clocks: now-ts: mono=84002467.5ms boot=91312617.7ms real=1792734691552.9ms (plausible base: none)
+  kglobalaccel signal arrival -> portal Activated arrival: 1.45ms (kga ts=0ms, portal ts=0ms)
+STAMP (native shortcut client) pid=1162132 activation_token=PRESENT
+KGLOBALACCEL pressed component="io.github.quicktranslate.QuickTranslate.Spike" shortcut="translate-selection" ts=0ms (this spike) | now-ts: mono=84004083.6ms boot=91314233.8ms real=1792734693168.9ms (plausible base: none)
+ACTIVATED #9 id="translate-selection" portal_ts=0ms options_keys=[] activation_token=ABSENT
+  portal ts vs clocks: now-ts: mono=84004084.9ms boot=91314235.1ms real=1792734693170.2ms (plausible base: none)
+  kglobalaccel signal arrival -> portal Activated arrival: 1.26ms (kga ts=0ms, portal ts=0ms)
+STAMP (native shortcut client) pid=1162138 activation_token=PRESENT
+KGLOBALACCEL pressed component="io.github.quicktranslate.QuickTranslate.Spike" shortcut="translate-selection" ts=0ms (this spike) | now-ts: mono=84005699.9ms boot=91315850.1ms real=1792734694785.2ms (plausible base: none)
+ACTIVATED #10 id="translate-selection" portal_ts=0ms options_keys=[] activation_token=ABSENT
+  portal ts vs clocks: now-ts: mono=84005701.1ms boot=91315851.3ms real=1792734694786.5ms (plausible base: none)
+  kglobalaccel signal arrival -> portal Activated arrival: 1.27ms (kga ts=0ms, portal ts=0ms)
+STAMP (native shortcut client) pid=1162142 activation_token=PRESENT
+KGLOBALACCEL pressed component="io.github.quicktranslate.QuickTranslate.Spike" shortcut="translate-selection" ts=0ms (this spike) | now-ts: mono=84007317.1ms boot=91317467.3ms real=1792734696402.4ms (plausible base: none)
+ACTIVATED #11 id="translate-selection" portal_ts=0ms options_keys=[] activation_token=ABSENT
+  portal ts vs clocks: now-ts: mono=84007318.5ms boot=91317468.7ms real=1792734696403.8ms (plausible base: none)
+  kglobalaccel signal arrival -> portal Activated arrival: 1.42ms (kga ts=0ms, portal ts=0ms)
+STAMP (native shortcut client) pid=1162188 activation_token=PRESENT
+KGLOBALACCEL pressed component="io.github.quicktranslate.QuickTranslate.Spike" shortcut="translate-selection" ts=0ms (this spike) | now-ts: mono=84008934.4ms boot=91319084.6ms real=1792734698019.7ms (plausible base: none)
+ACTIVATED #12 id="translate-selection" portal_ts=0ms options_keys=[] activation_token=ABSENT
+  portal ts vs clocks: now-ts: mono=84008935.6ms boot=91319085.8ms real=1792734698020.9ms (plausible base: none)
+  kglobalaccel signal arrival -> portal Activated arrival: 1.25ms (kga ts=0ms, portal ts=0ms)
+STAMP (native shortcut client) pid=1162208 activation_token=PRESENT
+KGLOBALACCEL pressed component="io.github.quicktranslate.QuickTranslate.Spike" shortcut="translate-selection" ts=0ms (this spike) | now-ts: mono=84010552.1ms boot=91320702.3ms real=1792734699637.4ms (plausible base: none)
+ACTIVATED #13 id="translate-selection" portal_ts=0ms options_keys=[] activation_token=ABSENT
+  portal ts vs clocks: now-ts: mono=84010553.5ms boot=91320703.7ms real=1792734699638.8ms (plausible base: none)
+  kglobalaccel signal arrival -> portal Activated arrival: 1.40ms (kga ts=0ms, portal ts=0ms)
+STAMP (native shortcut client) pid=1162226 activation_token=PRESENT
+KGLOBALACCEL pressed component="io.github.quicktranslate.QuickTranslate.Spike" shortcut="translate-selection" ts=0ms (this spike) | now-ts: mono=84012168.7ms boot=91322318.9ms real=1792734701254.0ms (plausible base: none)
+ACTIVATED #14 id="translate-selection" portal_ts=0ms options_keys=[] activation_token=ABSENT
+  portal ts vs clocks: now-ts: mono=84012169.7ms boot=91322320.0ms real=1792734701255.1ms (plausible base: none)
+  kglobalaccel signal arrival -> portal Activated arrival: 1.02ms (kga ts=0ms, portal ts=0ms)
+STAMP (native shortcut client) pid=1162232 activation_token=PRESENT
+KGLOBALACCEL pressed component="io.github.quicktranslate.QuickTranslate.Spike" shortcut="translate-selection" ts=0ms (this spike) | now-ts: mono=84013785.8ms boot=91323936.0ms real=1792734702871.1ms (plausible base: none)
+ACTIVATED #15 id="translate-selection" portal_ts=0ms options_keys=[] activation_token=ABSENT
+  portal ts vs clocks: now-ts: mono=84013787.0ms boot=91323937.2ms real=1792734702872.3ms (plausible base: none)
+  kglobalaccel signal arrival -> portal Activated arrival: 1.17ms (kga ts=0ms, portal ts=0ms)
+[listen] time up
+== summary ==
+  portal: Activated.timestamp -> arrival (mono) n=0
+  portal: kglobalaccel signal -> Activated     n=15  min=1.0ms median=1.3ms max=1.4ms
+  portal: evdev key-down -> Activated          n=0
+  native: kglobalaccel signal -> client main() n=0
+  native: kga timestamp -> client main()       n=0
+  native: evdev key-down -> client main()      n=0
+[gs] session closed.
+Run --cleanup when completely done.
+--- invoke -> result (includes busctl process start, same for both paths)
+native (KDE command shortcut -> new process main()): n=15 min=30.3ms median=35.5ms max=40.6ms
+portal (Activated arrival in a running process): n=15 min=7.3ms median=8.0ms max=8.6ms

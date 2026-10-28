@@ -1,0 +1,37 @@
+[package]
+name = "quick-translate-ui"
+description = "iced popup and settings UI with layer-shell and window shells"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+quick-translate-core.workspace = true
+quick-translate-backends.workspace = true
+quick-translate-platform.workspace = true
+quick-translate-secrets.workspace = true
+quick-translate-ipc.workspace = true
+zbus.workspace = true
+iced.workspace = true
+iced_layershell.workspace = true
+smithay-clipboard.workspace = true
+raw-window-handle.workspace = true
+wayland-client.workspace = true
+wayland-backend.workspace = true
+wayland-protocols.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+futures.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
+tempfile.workspace = true
+wiremock.workspace = true
+url.workspace = true

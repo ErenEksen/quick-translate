@@ -1,0 +1,24 @@
+---
+source: crates/quick-translate-platform/tests/shortcut_snippet.rs
+expression: rendered
+---
+# labwc
+Add this inside the `<keyboard>` section of ~/.config/labwc/rc.xml, then run `labwc --reconfigure`.
+
+<keybind key="C-A-c">
+  <action name="Execute" command="/home/you/Applications/QuickTranslate-x86_64.AppImage --toggle" />
+</keybind>
+---
+# labwc
+Add this inside the `<keyboard>` section of ~/.config/labwc/rc.xml, then run `labwc --reconfigure`.
+
+<keybind key="C-A-c">
+  <action name="Execute" command="quick-translate --toggle" />
+</keybind>
+---
+# labwc
+Add this inside the `<keyboard>` section of ~/.config/labwc/rc.xml, then run `labwc --reconfigure`.
+
+<keybind key="C-A-c">
+  <action name="Execute" command="'/home/you/My Apps/Quick Translate'\''s.AppImage' --toggle" />
+</keybind>

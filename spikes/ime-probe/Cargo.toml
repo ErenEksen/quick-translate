@@ -1,0 +1,13 @@
+[package]
+name = "ime-probe"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "Throwaway spike (tasks.md 2.3): iced 0.14 text_editor + IME on a layer surface (iced_layershell) and in a winit window."
+
+[workspace]
+
+[dependencies]
+iced = { version = "0.14", default-features = false, features = ["wgpu", "tiny-skia", "crisp", "wayland", "tokio", "advanced"] }
+iced_layershell = { version = "0.19", default-features = false }
+tokio = { version = "1", features = ["time"] }

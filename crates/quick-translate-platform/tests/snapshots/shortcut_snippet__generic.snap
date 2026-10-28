@@ -1,0 +1,18 @@
+---
+source: crates/quick-translate-platform/tests/shortcut_snippet.rs
+expression: rendered
+---
+# Other environments
+Bind Ctrl+Alt+C (or any key you like) in your compositor's or desktop's shortcut settings to run this command.
+
+/home/you/Applications/QuickTranslate-x86_64.AppImage --toggle
+---
+# Other environments
+Bind Ctrl+Alt+C (or any key you like) in your compositor's or desktop's shortcut settings to run this command.
+
+quick-translate --toggle
+---
+# Other environments
+Bind Ctrl+Alt+C (or any key you like) in your compositor's or desktop's shortcut settings to run this command.
+
+'/home/you/My Apps/Quick Translate'\''s.AppImage' --toggle

@@ -1,0 +1,48 @@
+		logical_width: 954, logical_height: 1040
+interface: 'zwp_text_input_manager_v3',                  version:  1, name: 32
+interface: 'zwlr_layer_shell_v1',                        version:  5, name: 43
+
+thread 'main' (1525) panicked at src/bin/fake-pointer.rs:95:75:
+no fake-input or virtual-pointer global: NotPresent
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+=== 
+output: name=WINIT-0 mode=(954, 1040) scale=1
+[    0.12 ms] created layer surface #0 on output WINIT-0
+[   45.29 ms] wl_surface.enter #Some(0) output=WINIT-0
+[   45.33 ms] keyboard enter #Some(0) (WINIT-0)
+[   45.38 ms] configure #0 (WINIT-0) 954x1040 first=true
+[   45.51 ms] committed buffer #0 (1x1)
+[  181.14 ms] first frame callback done #0
+[  271.99 ms] pointer enter #Some(0) output=WINIT-0 pos=(0.0, 0.0) [no motion before it: true]
+[safety] 800 ms elapsed, exiting
+=== --full-buffer
+output: name=WINIT-0 mode=(954, 1040) scale=1
+[    0.10 ms] created layer surface #0 on output WINIT-0
+[   45.44 ms] wl_surface.enter #Some(0) output=WINIT-0
+[   45.47 ms] keyboard enter #Some(0) (WINIT-0)
+[   45.51 ms] configure #0 (WINIT-0) 954x1040 first=true
+[   45.62 ms] committed buffer #0 (954x1040)
+[  180.93 ms] first frame callback done #0
+[  180.99 ms] pointer enter #Some(0) output=WINIT-0 pos=(0.0, 0.0) [no motion before it: true]
+[safety] 800 ms elapsed, exiting
+                "width": 1280,
+              "app_id": "niri",
+                "x": 2560,
+                "y": 25,
+                "width": 640,
+--
+                "width": 1280,
+              "app_id": null,
+        "width": 1920,
+fake pointer at (1400, 500); idling 1s
+[fake-pointer 313 ms] 300:move:1401,500
+=== after host pointer moved over cosmic window, idle
+output: name=WINIT-0 mode=(954, 1040) scale=1
+[    0.06 ms] created layer surface #0 on output WINIT-0
+[   44.81 ms] wl_surface.enter #Some(0) output=WINIT-0
+[   44.84 ms] keyboard enter #Some(0) (WINIT-0)
+[   44.88 ms] configure #0 (WINIT-0) 954x1040 first=true
+[   45.00 ms] committed buffer #0 (1x1)
+[   89.19 ms] pointer enter #Some(0) output=WINIT-0 pos=(0.0, 0.0) [no motion before it: true]
+[  178.58 ms] first frame callback done #0
+[safety] 800 ms elapsed, exiting

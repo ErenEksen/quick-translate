@@ -1,0 +1,7 @@
+env: WAYLAND_DISPLAY=Some("wayland-1") XDG_CURRENT_DESKTOP=Some("KDE") layer_shell_v=4 viewporter=true full_buffer=false layer=Overlay kb=Exclusive
+output: name=eDP-1 mode=(1920, 1200) scale=1
+[    0.09 ms] created layer surface #0 on output eDP-1
+[    0.68 ms] configure #0 (eDP-1) 1920x1200 first=true
+[    0.80 ms] committed buffer #0 (1x1)
+[    1.94 ms] wl_surface.enter #Some(0) output=eDP-1
+[safety] 1500 ms elapsed, exiting

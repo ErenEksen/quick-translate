@@ -1,0 +1,175 @@
+name: Release
+
+# tasks.md 9.4, design D11. A `v*` tag builds the AppImage and its .zsync in
+# ubuntu:22.04 (the glibc 2.35 baseline), smoke-tests them in Ubuntu 22.04,
+# Debian 12 and Fedora containers, builds and runs the Nix flake, and attaches
+# the AppImage, .zsync and SHA256SUMS to the GitHub Release for the tag.
+# A manual run (workflow_dispatch) is a dry run: every job but `release`.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  DEBIAN_FRONTEND: noninteractive
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  version:
+    name: Version
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      appimage: ${{ steps.version.outputs.appimage }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Derive the version and check it against Cargo.toml
+        id: version
+        run: |
+          cargo_version="$(sed -n '/^\[workspace\.package\]/,/^\[/{s/^version *= *"\([^"]*\)".*/\1/p}' Cargo.toml | head -n1)"
+          [ -n "$cargo_version" ] || { echo "::error::no [workspace.package] version in Cargo.toml"; exit 1; }
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            version="${GITHUB_REF_NAME#v}"
+            if [ "$version" != "$cargo_version" ]; then
+              echo "::error::tag $GITHUB_REF_NAME does not match the Cargo workspace version $cargo_version"
+              exit 1
+            fi
+          else
+            version="$cargo_version"
+            echo "::notice::not a tag ($GITHUB_REF_NAME): dry run for version $version, nothing is released"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "appimage=quick-translate-$version-x86_64.AppImage" >> "$GITHUB_OUTPUT"
+          echo "Version: $version"
+
+  appimage:
+    name: Build AppImage
+    needs: version
+    runs-on: ubuntu-24.04
+    container: ubuntu:22.04
+    steps:
+      - name: Install bootstrap tools
+        run: |
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            ca-certificates curl git >/dev/null
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build (packaging/appimage/build.sh)
+        env:
+          # Update information for AppImageUpdate, pointing at this repository's releases.
+          UPDATE_INFO: gh-releases-zsync|${{ github.repository_owner }}|${{ github.event.repository.name }}|latest|quick-translate-*-x86_64.AppImage.zsync
+        run: bash packaging/appimage/build.sh --no-container --install-deps --update-info "$UPDATE_INFO"
+      - name: Check the outputs
+        env:
+          APPIMAGE: ${{ needs.version.outputs.appimage }}
+        run: |
+          test -x "dist/$APPIMAGE"
+          test -s "dist/$APPIMAGE.zsync"
+          ls -l dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: appimage
+          path: |
+            dist/${{ needs.version.outputs.appimage }}
+            dist/${{ needs.version.outputs.appimage }}.zsync
+          if-no-files-found: error
+          retention-days: 7
+
+  smoke:
+    name: Smoke test (${{ matrix.image }})
+    needs: [version, appimage]
+    runs-on: ubuntu-24.04
+    # Job containers have no /dev/fuse: the AppImage runs with APPIMAGE_EXTRACT_AND_RUN=1.
+    container: ${{ matrix.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: ubuntu:22.04
+            install-binutils: apt-get update -qq && apt-get install -y -qq --no-install-recommends binutils >/dev/null
+          - image: debian:12
+            install-binutils: apt-get update -qq && apt-get install -y -qq --no-install-recommends binutils >/dev/null
+          - image: fedora:44
+            install-binutils: dnf install -y -q binutils
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: appimage
+          path: dist
+      - name: Smoke test on the bare image
+        # Artifacts lose the executable bit; smoke-test.sh copies and chmods as needed.
+        run: >-
+          bash packaging/appimage/smoke-test.sh --no-audit --require-zsync
+          "dist/${{ needs.version.outputs.appimage }}" "${{ needs.version.outputs.version }}"
+      - name: Install binutils for the bundle audit
+        run: ${{ matrix.install-binutils }}
+      - name: Bundle audit
+        run: |
+          chmod +x "dist/${{ needs.version.outputs.appimage }}"
+          bash packaging/appimage/audit.sh "dist/${{ needs.version.outputs.appimage }}"
+
+  nix:
+    name: Nix flake
+    needs: version
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: nix build
+        run: |
+          nix build --print-build-logs
+          test -x result/bin/quick-translate
+          ls -l result/bin/
+      - name: nix run . -- --version
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          out="$(nix run . -- --version)"
+          echo "$out"
+          [ "$out" = "quick-translate $VERSION" ] || { echo "::error::expected 'quick-translate $VERSION'"; exit 1; }
+
+  release:
+    name: GitHub Release
+    needs: [version, appimage, smoke, nix]
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: appimage
+          path: dist
+      - name: Write SHA256SUMS
+        working-directory: dist
+        env:
+          APPIMAGE: ${{ needs.version.outputs.appimage }}
+        run: |
+          chmod +x "$APPIMAGE"
+          sha256sum "$APPIMAGE" "$APPIMAGE.zsync" > SHA256SUMS
+          cat SHA256SUMS
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/${{ needs.version.outputs.appimage }}
+            dist/${{ needs.version.outputs.appimage }}.zsync
+            dist/SHA256SUMS
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          prerelease: ${{ contains(needs.version.outputs.version, '-') }}

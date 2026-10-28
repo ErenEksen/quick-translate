@@ -1,0 +1,18 @@
+---
+source: crates/quick-translate-platform/tests/shortcut_snippet.rs
+expression: rendered
+---
+# niri
+Add this line inside the `binds { }` section of ~/.config/niri/config.kdl. niri reloads it automatically.
+
+Ctrl+Alt+C { spawn "/home/you/Applications/QuickTranslate-x86_64.AppImage" "--toggle"; }
+---
+# niri
+Add this line inside the `binds { }` section of ~/.config/niri/config.kdl. niri reloads it automatically.
+
+Ctrl+Alt+C { spawn "quick-translate" "--toggle"; }
+---
+# niri
+Add this line inside the `binds { }` section of ~/.config/niri/config.kdl. niri reloads it automatically.
+
+Ctrl+Alt+C { spawn "/home/you/My Apps/Quick Translate's.AppImage" "--toggle"; }

@@ -1,0 +1,18 @@
+---
+source: crates/quick-translate-platform/tests/shortcut_snippet.rs
+expression: rendered
+---
+# KDE Plasma
+Open System Settings > Keyboard > Shortcuts > Add New > Command or Script. Paste this command, then set Ctrl+Alt+C as its shortcut.
+
+/home/you/Applications/QuickTranslate-x86_64.AppImage --toggle
+---
+# KDE Plasma
+Open System Settings > Keyboard > Shortcuts > Add New > Command or Script. Paste this command, then set Ctrl+Alt+C as its shortcut.
+
+quick-translate --toggle
+---
+# KDE Plasma
+Open System Settings > Keyboard > Shortcuts > Add New > Command or Script. Paste this command, then set Ctrl+Alt+C as its shortcut.
+
+'/home/you/My Apps/Quick Translate'\''s.AppImage' --toggle

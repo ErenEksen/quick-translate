@@ -1,0 +1,13 @@
+$ target/agent-portal-spike/debug/portal-shortcuts-spike --cleanup
+== cleanup ==
+[cleanup] removed .desktop: /home/axis/.local/share/applications/io.github.quicktranslate.QuickTranslate.Spike.desktop
+[cleanup] socket not present: /run/user/1000/qt-portal-spike.sock
+[cleanup] removed stamp log: /run/user/1000/qt-portal-spike-stamps.log
+[cleanup] kglobalaccel unregister(io.github.quicktranslate.QuickTranslate.Spike, translate-selection) -> Ok(true)
+[cleanup] kglobalaccel /component/io_github_quicktranslate_QuickTranslate_Spike.cleanUp() -> Ok(false)
+[kglobalaccel] component /component/io_github_quicktranslate_QuickTranslate_Spike present, 0 shortcut(s)
+[cleanup] Portal sessions close automatically when the spike process exits.
+[cleanup] If System Settings > Keyboard > Shortcuts still lists "Quick Translate (portal spike)",
+[cleanup] select it and remove it. Also remove the native custom shortcut that runs
+[cleanup] `portal-shortcuts-spike --stamp` if you created one (it lives in
+[cleanup] ~/.local/share/applications/net.local.*.desktop).

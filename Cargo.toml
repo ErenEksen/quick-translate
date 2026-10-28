@@ -1,0 +1,89 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+exclude = ["spikes", "patches"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.90"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/ErenEksen/quick-translate"
+publish = false
+
+[workspace.dependencies]
+quick-translate-core = { path = "crates/quick-translate-core" }
+quick-translate-platform = { path = "crates/quick-translate-platform" }
+quick-translate-backends = { path = "crates/quick-translate-backends" }
+quick-translate-secrets = { path = "crates/quick-translate-secrets" }
+quick-translate-ipc = { path = "crates/quick-translate-ipc" }
+quick-translate-ui = { path = "crates/quick-translate-ui" }
+
+# Async runtime and utilities. One Tokio runtime is shared by iced, zbus and ashpd (D10).
+tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "sync", "time", "net", "io-util", "fs", "signal", "process"] }
+tokio-util = "0.7"
+futures = "0.3"
+
+# D-Bus and portals. zbus stays on 5.x because ashpd, oo7 and iced's theme detection use it.
+zbus = { version = "5", default-features = false, features = ["tokio"] }
+ashpd = { version = "0.13", default-features = false, features = ["tokio", "global_shortcuts", "settings", "open_uri"] }
+oo7 = { version = "0.7.0-beta", default-features = false, features = ["tokio", "native_crypto"] }
+
+# Wayland
+wayland-client = "0.31"
+wayland-backend = { version = "0.3", features = ["client_system"] }
+wayland-protocols = { version = "0.32", features = ["client", "staging"] }
+wayland-protocols-wlr = { version = "0.3", features = ["client"] }
+evdev = { version = "0.13", features = ["tokio"] }
+rustix = { version = "1", features = ["fs", "pipe", "event", "process"] }
+
+# GUI
+iced = { version = "0.14", default-features = false, features = ["wgpu", "tiny-skia", "crisp", "wayland", "tokio", "advanced"] }
+# Cargo.lock pins winit-core/winit-common to 0.31.0-beta.2: beta.3 made NativeKeyCode
+# non-exhaustive and breaks iced_exdevtools 0.19.1. Do not `cargo update` them.
+iced_layershell = { version = "0.19", default-features = false }
+# Focus-time PRIMARY read and CLIPBOARD ownership in the window shell (same versions iced uses).
+smithay-clipboard = "0.7"
+raw-window-handle = "0.6"
+
+# HTTP. rustls keeps the AppImage free of OpenSSL (D7).
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "http2", "stream", "json"] }
+url = "2.5"
+
+# Serialization, errors, logging
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "1.1"
+toml_edit = { version = "0.25", features = ["serde"] }
+thiserror = "2"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# Dev
+tempfile = "3.27"
+wiremock = "0.6"
+insta = "1.49"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+unused_must_use = "deny"
+rust_2018_idioms = { level = "warn", priority = -1 }
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+dbg_macro = "warn"
+todo = "warn"
+unwrap_used = "warn"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+strip = true
+
+# softbuffer 0.4.8 allocates its Wayland buffers as Xrgb8888, which drops the alpha channel, so
+# the tiny-skia renderer draws the transparent full-output overlay (design D3) opaque black. The
+# patched copy only switches the two `wl_shm::Format` uses to Argb8888 (iced writes premultiplied
+# BGRA). Drop it once softbuffer exposes an alpha mode that iced_tiny_skia requests.
+[patch.crates-io]
+softbuffer = { path = "patches/softbuffer" }

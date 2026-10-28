@@ -1,0 +1,7 @@
+#!/bin/sh
+# AppRun for quick-translate. Nothing but the binary is bundled (design D11):
+# glibc, libwayland-client, libxkbcommon and the GPU stack come from the host,
+# so no LD_LIBRARY_PATH is set here. $APPIMAGE, $APPDIR and $ARGV0 are left
+# exactly as the runtime set them; the app uses $APPIMAGE for desktop integration.
+HERE="$(dirname "$(readlink -f "$0")")"
+exec "${APPDIR:-$HERE}/usr/bin/quick-translate" "$@"

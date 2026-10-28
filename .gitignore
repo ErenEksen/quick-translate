@@ -1,0 +1,9 @@
+/target/
+/spikes/*/target/
+/result
+/result-*
+/dist/
+/packaging/appimage/AppDir/
+*.AppImage
+*.zsync
+.direnv/

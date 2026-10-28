@@ -1,0 +1,55 @@
+##### 2 outputs --keepalive
+[    7.13 ms] outputs: ["Virtual-0", "Virtual-1"]  opts: Opts { cycles: 1, input_region: false, keepalive: true, kb_late: false, life_ms: 2500 }
+[    7.15 ms] requested keepalive 1x1 surface Id(1)
+[  461.09 ms] first view() Id(1) (keepalive) +453.93 ms
+[  485.70 ms] === cycle 1 show: creating 2 overlay(s)
+[  485.76 ms] requested overlay Id(2) on Virtual-0
+[  485.78 ms] requested overlay Id(3) on Virtual-1
+[  485.80 ms] Opened Id(1) (keepalive) size Size { width: 1.0, height: 1.0 } +478.65 ms
+[  485.82 ms] first RedrawRequested Id(1) (keepalive) +478.67 ms
+[  492.68 ms] first view() Id(2) (Virtual-0) +6.91 ms
+[  503.92 ms] first view() Id(3) (Virtual-1) +18.13 ms
+[  506.65 ms] Opened Id(2) (Virtual-0) size Size { width: 2880.0, height: 1620.0 } +20.89 ms
+[  506.77 ms] first RedrawRequested Id(2) (Virtual-0) +21.00 ms
+[  506.77 ms] Opened Id(3) (Virtual-1) size Size { width: 2880.0, height: 1620.0 } +20.99 ms
+[  506.77 ms] first RedrawRequested Id(3) (Virtual-1) +21.00 ms
+[  507.32 ms] Focused Id(2) (Virtual-0) first=true +21.56 ms
+[  508.03 ms] FIRST pointer position via Entered on Id(3) (Virtual-1) at (120.0, 200.0) +22.25 ms
+[  508.04 ms] panel at Some(Point { x: 132.0, y: 212.0 }) (surface Size { width: 2880.0, height: 1620.0 })
+[  508.04 ms] RemoveWindow loser Id(2) (Virtual-0)
+[  508.62 ms] Unfocused Id(2) (Virtual-0) +22.86 ms
+[  508.63 ms] subscription: mouse::Event::CursorEntered on Id(3) (Virtual-1) (no position in event) +22.85 ms
+[  508.63 ms] Focused Id(3) (Virtual-1) first=true +22.85 ms
+[  512.11 ms] Closed Id(2) (Virtual-0) +26.34 ms
+[ 1499.92 ms] button press on Id(3) at (1020.0, 900.0) inside_panel=false
+[ 1499.94 ms] outside click -> hide
+[ 1500.01 ms] cycle 1 hide: removing 2 surface(s)
+[ 1506.15 ms] Closed Id(3) (Virtual-1) +1020.37 ms
+[ 1511.78 ms] Unfocused Id(1) (keepalive) +1504.62 ms
+[ 1651.05 ms] exit
+##### 2 outputs --keepalive --input-region
+[    2.31 ms] outputs: ["Virtual-0", "Virtual-1"]  opts: Opts { cycles: 1, input_region: true, keepalive: true, kb_late: false, life_ms: 2500 }
+[    2.32 ms] requested keepalive 1x1 surface Id(1)
+[  453.97 ms] first view() Id(1) (keepalive) +451.64 ms
+[  483.07 ms] === cycle 1 show: creating 2 overlay(s)
+[  483.09 ms] requested overlay Id(2) on Virtual-0
+[  483.10 ms] requested overlay Id(3) on Virtual-1
+[  483.12 ms] Opened Id(1) (keepalive) size Size { width: 1.0, height: 1.0 } +480.79 ms
+[  483.12 ms] first RedrawRequested Id(1) (keepalive) +480.80 ms
+[  489.26 ms] first view() Id(2) (Virtual-0) +6.16 ms
+[  501.47 ms] first view() Id(3) (Virtual-1) +18.36 ms
+[  504.47 ms] Opened Id(2) (Virtual-0) size Size { width: 2880.0, height: 1620.0 } +21.37 ms
+[  504.49 ms] first RedrawRequested Id(2) (Virtual-0) +21.39 ms
+[  504.49 ms] Opened Id(3) (Virtual-1) size Size { width: 2880.0, height: 1620.0 } +21.39 ms
+[  504.49 ms] first RedrawRequested Id(3) (Virtual-1) +21.40 ms
+[  504.92 ms] Focused Id(2) (Virtual-0) first=true +21.83 ms
+[  505.67 ms] FIRST pointer position via Entered on Id(3) (Virtual-1) at (120.0, 200.0) +22.56 ms
+[  505.68 ms] panel at Some(Point { x: 132.0, y: 212.0 }) (surface Size { width: 2880.0, height: 1620.0 })
+[  505.68 ms] RemoveWindow loser Id(2) (Virtual-0)
+[  505.68 ms] SetInputRegion on Id(3) -> panel rect (132,212,720,320)
+[  506.32 ms] Unfocused Id(2) (Virtual-0) +23.23 ms
+[  506.33 ms] subscription: mouse::Event::CursorEntered on Id(3) (Virtual-1) (no position in event) +23.23 ms
+[  506.33 ms] Focused Id(3) (Virtual-1) first=true +23.23 ms
+[  509.61 ms] Closed Id(2) (Virtual-0) +26.51 ms
+[ 1400.54 ms] subscription: CursorLeft on Id(3)
+[ 2203.12 ms] exit

@@ -1,0 +1,16 @@
+[    0.10 ms] env: WAYLAND_DISPLAY=Some("qt-kwin-0") XDG_CURRENT_DESKTOP=Some("KDE") WGPU_BACKEND=None ICED_BACKEND=None
+[    5.45 ms] outputs: ["Virtual-0"]  opts: Opts { cycles: 1, input_region: false, keepalive: true, kb_late: false, life_ms: 2500 }
+[    5.46 ms] requested keepalive 1x1 surface Id(1)
+[  328.91 ms] first view() Id(1) (keepalive) +323.45 ms
+[  345.85 ms] === cycle 1 show: creating 1 overlay(s)
+[  345.87 ms] requested overlay Id(2) on Virtual-0
+[  345.88 ms] Opened Id(1) (keepalive) size Size { width: 1.0, height: 1.0 } +340.42 ms
+[  345.88 ms] first RedrawRequested Id(1) (keepalive) +340.43 ms
+[  357.40 ms] first view() Id(2) (Virtual-0) +11.52 ms
+[  359.31 ms] Opened Id(2) (Virtual-0) size Size { width: 1920.0, height: 1080.0 } +13.44 ms
+[  359.38 ms] first RedrawRequested Id(2) (Virtual-0) +13.51 ms
+[  360.71 ms] FIRST pointer position via Entered on Id(2) (Virtual-0) at (500.0, 400.0) +14.84 ms
+[  360.72 ms] panel at Some(Point { x: 512.0, y: 412.0 }) (surface Size { width: 1920.0, height: 1080.0 })
+[  361.30 ms] subscription: mouse::Event::CursorEntered on Id(2) (Virtual-0) (no position in event) +15.43 ms
+[ 1302.08 ms] first key Named(Escape) delivered to Id(2)
+[ 1302.13 ms] exit

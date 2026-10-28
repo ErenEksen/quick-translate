@@ -1,0 +1,49 @@
+##### cycles 3 
+[    9.66 ms] outputs: ["Virtual-0"]  opts: Opts { cycles: 3, input_region: false, keepalive: false, kb_late: false, life_ms: 4000 }
+[   17.29 ms] === cycle 1 show: creating 1 overlay(s)
+[  783.25 ms] first view() Id(1) (Virtual-0) +765.93 ms
+[  789.13 ms] Opened Id(1) (Virtual-0) size Size { width: 1920.0, height: 1080.0 } +771.81 ms
+[  791.73 ms] FIRST pointer position via Entered on Id(1) (Virtual-0) at (500.0, 400.0) +774.40 ms
+[  993.42 ms] cycle 1 hide: removing 1 surface(s)
+[ 1114.49 ms] Closed Id(1) (Virtual-0) +1097.17 ms
+[ 1144.89 ms] === cycle 2 show: creating 1 overlay(s)
+[ 1507.30 ms] first view() Id(2) (Virtual-0) +362.37 ms
+[ 1512.93 ms] Opened Id(2) (Virtual-0) size Size { width: 1920.0, height: 1080.0 } +368.00 ms
+[ 1514.33 ms] FIRST pointer position via Entered on Id(2) (Virtual-0) at (500.0, 400.0) +369.40 ms
+[ 1716.42 ms] cycle 2 hide: removing 1 surface(s)
+[ 1830.84 ms] Closed Id(2) (Virtual-0) +685.92 ms
+[ 1867.50 ms] === cycle 3 show: creating 1 overlay(s)
+[ 2212.94 ms] first view() Id(3) (Virtual-0) +345.42 ms
+[ 2220.79 ms] Opened Id(3) (Virtual-0) size Size { width: 1920.0, height: 1080.0 } +353.27 ms
+[ 2222.12 ms] FIRST pointer position via Entered on Id(3) (Virtual-0) at (500.0, 400.0) +354.61 ms
+[ 2424.45 ms] cycle 3 hide: removing 1 surface(s)
+[ 2542.12 ms] Closed Id(3) (Virtual-0) +674.60 ms
+[ 2576.07 ms] exit
+##### cycles 3 --keepalive
+[   10.88 ms] outputs: ["Virtual-0"]  opts: Opts { cycles: 3, input_region: false, keepalive: true, kb_late: false, life_ms: 4000 }
+[   10.89 ms] requested keepalive 1x1 surface Id(1)
+[  460.86 ms] first view() Id(1) (keepalive) +449.96 ms
+[  492.92 ms] === cycle 1 show: creating 1 overlay(s)
+[  493.41 ms] Opened Id(1) (keepalive) size Size { width: 1.0, height: 1.0 } +482.52 ms
+[  493.42 ms] first RedrawRequested Id(1) (keepalive) +482.53 ms
+[  505.23 ms] first view() Id(2) (Virtual-0) +12.28 ms
+[  510.58 ms] Opened Id(2) (Virtual-0) size Size { width: 1920.0, height: 1080.0 } +17.64 ms
+[  514.44 ms] FIRST pointer position via Entered on Id(2) (Virtual-0) at (500.0, 400.0) +21.50 ms
+[  715.47 ms] cycle 1 hide: removing 1 surface(s)
+[  718.28 ms] Closed Id(2) (Virtual-0) +225.34 ms
+[  726.27 ms] Unfocused Id(1) (keepalive) +715.38 ms
+[  870.08 ms] === cycle 2 show: creating 1 overlay(s)
+[  883.50 ms] first view() Id(3) (Virtual-0) +13.40 ms
+[  888.19 ms] Opened Id(3) (Virtual-0) size Size { width: 1920.0, height: 1080.0 } +18.09 ms
+[  889.21 ms] FIRST pointer position via Entered on Id(3) (Virtual-0) at (500.0, 400.0) +19.11 ms
+[ 1089.84 ms] cycle 2 hide: removing 1 surface(s)
+[ 1094.36 ms] Closed Id(3) (Virtual-0) +224.26 ms
+[ 1095.54 ms] Unfocused Id(1) (keepalive) +1084.65 ms
+[ 1241.55 ms] === cycle 3 show: creating 1 overlay(s)
+[ 1248.92 ms] first view() Id(4) (Virtual-0) +7.35 ms
+[ 1253.54 ms] Opened Id(4) (Virtual-0) size Size { width: 1920.0, height: 1080.0 } +11.96 ms
+[ 1253.60 ms] FIRST pointer position via Entered on Id(4) (Virtual-0) at (500.0, 400.0) +12.03 ms
+[ 1454.82 ms] cycle 3 hide: removing 1 surface(s)
+[ 1457.60 ms] Closed Id(4) (Virtual-0) +216.03 ms
+[ 1458.81 ms] Unfocused Id(1) (keepalive) +1447.92 ms
+[ 1606.23 ms] exit

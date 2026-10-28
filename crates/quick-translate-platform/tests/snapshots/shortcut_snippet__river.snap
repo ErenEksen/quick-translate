@@ -1,0 +1,18 @@
+---
+source: crates/quick-translate-platform/tests/shortcut_snippet.rs
+expression: rendered
+---
+# river
+Add this line to your river init script (~/.config/river/init), then run it once or restart river. This uses `riverctl` (river 0.3 and river-classic).
+
+riverctl map normal Control+Alt C spawn '/home/you/Applications/QuickTranslate-x86_64.AppImage --toggle'
+---
+# river
+Add this line to your river init script (~/.config/river/init), then run it once or restart river. This uses `riverctl` (river 0.3 and river-classic).
+
+riverctl map normal Control+Alt C spawn 'quick-translate --toggle'
+---
+# river
+Add this line to your river init script (~/.config/river/init), then run it once or restart river. This uses `riverctl` (river 0.3 and river-classic).
+
+riverctl map normal Control+Alt C spawn "'/home/you/My Apps/Quick Translate'\\''s.AppImage' --toggle"

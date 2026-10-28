@@ -1,0 +1,18 @@
+---
+source: crates/quick-translate-platform/tests/shortcut_snippet.rs
+expression: rendered
+---
+# Sway
+Add this line to ~/.config/sway/config, then run `swaymsg reload`.
+
+bindsym Ctrl+Alt+c exec /home/you/Applications/QuickTranslate-x86_64.AppImage --toggle
+---
+# Sway
+Add this line to ~/.config/sway/config, then run `swaymsg reload`.
+
+bindsym Ctrl+Alt+c exec quick-translate --toggle
+---
+# Sway
+Add this line to ~/.config/sway/config, then run `swaymsg reload`.
+
+bindsym Ctrl+Alt+c exec '/home/you/My Apps/Quick Translate'\''s.AppImage' --toggle

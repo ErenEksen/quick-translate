@@ -1,0 +1,17 @@
+[package]
+name = "wl-raw-probe"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "Throwaway spike (tasks.md 2.1): protocol-level timing of layer-surface map, keyboard enter and pointer enter/motion."
+
+[workspace]
+
+[dependencies]
+wayland-client = "0.31"
+wayland-protocols = { version = "0.32", features = ["client"] }
+wayland-protocols-wlr = { version = "0.3", features = ["client"] }
+rustix = { version = "1", features = ["fs"] }
+# Only for the nested-KWin test harness (fake pointer device); never run on a live session.
+wayland-protocols-plasma = { version = "0.3", features = ["client"] }
+wayland-protocols-misc = { version = "0.3", features = ["client"] }

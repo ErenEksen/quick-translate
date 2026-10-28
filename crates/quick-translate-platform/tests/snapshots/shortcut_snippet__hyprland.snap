@@ -1,0 +1,18 @@
+---
+source: crates/quick-translate-platform/tests/shortcut_snippet.rs
+expression: rendered
+---
+# Hyprland
+Add this line to ~/.config/hypr/hyprland.conf. Hyprland reloads it automatically.
+
+bind = CTRL ALT, C, exec, /home/you/Applications/QuickTranslate-x86_64.AppImage --toggle
+---
+# Hyprland
+Add this line to ~/.config/hypr/hyprland.conf. Hyprland reloads it automatically.
+
+bind = CTRL ALT, C, exec, quick-translate --toggle
+---
+# Hyprland
+Add this line to ~/.config/hypr/hyprland.conf. Hyprland reloads it automatically.
+
+bind = CTRL ALT, C, exec, '/home/you/My Apps/Quick Translate'\''s.AppImage' --toggle

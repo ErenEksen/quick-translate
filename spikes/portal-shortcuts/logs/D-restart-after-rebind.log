@@ -1,0 +1,31 @@
+$ target/agent-portal-spike/debug/portal-shortcuts-spike --bind --listen 6   (non-interactive)
+== bind + listen ==
+[desktop] up to date: /home/axis/.local/share/applications/io.github.quicktranslate.QuickTranslate.Spike.desktop
+[sock] listening for --stamp/--evdev-log on /run/user/1000/qt-portal-spike.sock
+[registry] Register(io.github.quicktranslate.QuickTranslate.Spike) OK in 7.7ms
+[gs] version = 2
+[gs] CreateSession OK in 99.3ms
+[persisted-before-bind] id="translate-selection" description="Translate selection (Quick Translate spike)" trigger_description="Meta+Alt+T"
+[kglobalaccel] component /component/io_github_quicktranslate_QuickTranslate_Spike present, 1 shortcut(s)
+[kglobalaccel]   action="translate-selection" friendly="Translate selection (Quick Translate spike)" keys=[402653268] default=[201326659]
+[gs] BindShortcuts([translate-selection preferred_trigger="CTRL+ALT+c"]) — on first bind KDE shows a dialog; accept it
+[gs] BindShortcuts OK after 16.5ms (includes any dialog time)
+[bound] id="translate-selection" description="Translate selection (Quick Translate spike)" trigger_description="Meta+Alt+T"
+[list-after-bind] id="translate-selection" description="Translate selection (Quick Translate spike)" trigger_description="Meta+Alt+T"
+[kglobalaccel] component /component/io_github_quicktranslate_QuickTranslate_Spike present, 1 shortcut(s)
+[kglobalaccel]   action="translate-selection" friendly="Translate selection (Quick Translate spike)" keys=[402653268] default=[201326659]
+[listen] press the shortcut now; listening 6s (Ctrl+C to stop)
+KGLOBALACCEL pressed component="io.github.quicktranslate.QuickTranslate.Spike" shortcut="translate-selection" ts=0ms (this spike) | now-ts: mono=83901197.8ms boot=91211348.0ms real=1792734590283.1ms (plausible base: none)
+ACTIVATED #1 id="translate-selection" portal_ts=0ms options_keys=[] activation_token=ABSENT
+  portal ts vs clocks: now-ts: mono=83901198.9ms boot=91211349.1ms real=1792734590284.2ms (plausible base: none)
+  kglobalaccel signal arrival -> portal Activated arrival: 1.14ms (kga ts=0ms, portal ts=0ms)
+[listen] time up
+== summary ==
+  portal: Activated.timestamp -> arrival (mono) n=0
+  portal: kglobalaccel signal -> Activated     n=1   min=1.1ms median=1.1ms max=1.1ms
+  portal: evdev key-down -> Activated          n=0
+  native: kglobalaccel signal -> client main() n=0
+  native: kga timestamp -> client main()       n=0
+  native: evdev key-down -> client main()      n=0
+[gs] session closed.
+Run --cleanup when completely done.

@@ -1,0 +1,18 @@
+---
+source: crates/quick-translate-platform/tests/shortcut_snippet.rs
+expression: rendered
+---
+# COSMIC
+Open Settings > Keyboard > Keyboard Shortcuts > Custom Shortcuts > Add Shortcut. Name it "Quick Translate", paste this command, and press Ctrl+Alt+C.
+
+/home/you/Applications/QuickTranslate-x86_64.AppImage --toggle
+---
+# COSMIC
+Open Settings > Keyboard > Keyboard Shortcuts > Custom Shortcuts > Add Shortcut. Name it "Quick Translate", paste this command, and press Ctrl+Alt+C.
+
+quick-translate --toggle
+---
+# COSMIC
+Open Settings > Keyboard > Keyboard Shortcuts > Custom Shortcuts > Add Shortcut. Name it "Quick Translate", paste this command, and press Ctrl+Alt+C.
+
+'/home/you/My Apps/Quick Translate'\''s.AppImage' --toggle

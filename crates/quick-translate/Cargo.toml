@@ -1,0 +1,35 @@
+[package]
+name = "quick-translate"
+description = "Select text, press a shortcut, see the translation at the cursor (Wayland)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "quick-translate"
+path = "src/main.rs"
+
+[dependencies]
+quick-translate-core.workspace = true
+quick-translate-platform.workspace = true
+quick-translate-backends.workspace = true
+quick-translate-secrets.workspace = true
+quick-translate-ipc.workspace = true
+quick-translate-ui.workspace = true
+iced.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+futures.workspace = true
+zbus.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

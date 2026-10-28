@@ -1,0 +1,101 @@
+===== $ timeout 5 target/agent-spikes/debug/wl-raw-probe --ms 1500
+env: WAYLAND_DISPLAY=Some("wayland-1") XDG_CURRENT_DESKTOP=Some("KDE") layer_shell_v=4 viewporter=true full_buffer=false layer=Overlay kb=Exclusive
+output: name=eDP-1 mode=(1920, 1200) scale=1
+[    0.08 ms] created layer surface #0 on output eDP-1
+[    0.47 ms] configure #0 (eDP-1) 1920x1200 first=true
+[    0.60 ms] committed buffer #0 (1x1)
+[    2.16 ms] wl_surface.enter #Some(0) output=eDP-1
+[    2.18 ms] pointer enter #Some(0) output=eDP-1 pos=(745.3, 692.6) [no motion before it: true]
+[    2.19 ms] keyboard enter #Some(0) (eDP-1)
+[    4.19 ms] first frame callback done #0
+[safety] 1500 ms elapsed, exiting
+exit=0
+===== $ timeout 5 target/agent-spikes/debug/wl-raw-probe --ms 1500 --full-buffer
+env: WAYLAND_DISPLAY=Some("wayland-1") XDG_CURRENT_DESKTOP=Some("KDE") layer_shell_v=4 viewporter=true full_buffer=true layer=Overlay kb=Exclusive
+output: name=eDP-1 mode=(1920, 1200) scale=1
+[    0.09 ms] created layer surface #0 on output eDP-1
+[    0.65 ms] configure #0 (eDP-1) 1920x1200 first=true
+[    0.78 ms] committed buffer #0 (1920x1200)
+[    2.18 ms] wl_surface.enter #Some(0) output=eDP-1
+[    2.20 ms] pointer enter #Some(0) output=eDP-1 pos=(745.3, 692.6) [no motion before it: true]
+[    2.21 ms] keyboard enter #Some(0) (eDP-1)
+[   18.09 ms] first frame callback done #0
+[safety] 1500 ms elapsed, exiting
+exit=0
+===== $ timeout 8 target/agent-spikes/release/overlay-probe --ms 2500 --keepalive
+[    0.11 ms] env: WAYLAND_DISPLAY=Some("wayland-1") XDG_CURRENT_DESKTOP=Some("KDE") WGPU_BACKEND=None ICED_BACKEND=None
+[    2.92 ms] outputs: ["eDP-1"]  opts: Opts { cycles: 1, input_region: false, keepalive: true, kb_late: false, sway_rebase: false, copy_test: false, life_ms: 2500 }
+[    2.93 ms] requested keepalive 1x1 surface Id(1)
+[  386.87 ms] first view() Id(1) (keepalive) +383.94 ms
+[  431.00 ms] === cycle 1 show: creating 1 overlay(s)
+[  431.01 ms] requested overlay Id(2) on eDP-1
+[  431.03 ms] Opened Id(1) (keepalive) size Size { width: 1.0, height: 1.0 } +428.09 ms
+[  431.04 ms] first RedrawRequested Id(1) (keepalive) +428.10 ms
+[  445.29 ms] first view() Id(2) (eDP-1) +14.28 ms
+[  447.57 ms] Opened Id(2) (eDP-1) size Size { width: 1920.0, height: 1200.0 } +16.55 ms
+[  447.58 ms] first RedrawRequested Id(2) (eDP-1) +16.57 ms
+[  449.18 ms] FIRST pointer position via Entered on Id(2) (eDP-1) at (745.3, 692.6) +18.16 ms
+[  449.19 ms] panel at Some(Point { x: 757.29297, y: 704.5625 }) (surface Size { width: 1920.0, height: 1200.0 })
+[  449.83 ms] subscription: mouse::Event::CursorEntered on Id(2) (eDP-1) (no position in event) +18.81 ms
+[ 2204.08 ms] exit
+exit=0
+===== $ timeout 8 target/agent-spikes/release/overlay-probe --ms 3000 --keepalive --cycles 3
+[    0.15 ms] env: WAYLAND_DISPLAY=Some("wayland-1") XDG_CURRENT_DESKTOP=Some("KDE") WGPU_BACKEND=None ICED_BACKEND=None
+[    3.87 ms] outputs: ["eDP-1"]  opts: Opts { cycles: 3, input_region: false, keepalive: true, kb_late: false, sway_rebase: false, copy_test: false, life_ms: 3000 }
+[    3.88 ms] requested keepalive 1x1 surface Id(1)
+[  457.36 ms] first view() Id(1) (keepalive) +453.47 ms
+[  484.97 ms] === cycle 1 show: creating 1 overlay(s)
+[  484.98 ms] requested overlay Id(2) on eDP-1
+[  485.00 ms] Opened Id(1) (keepalive) size Size { width: 1.0, height: 1.0 } +481.11 ms
+[  485.00 ms] first RedrawRequested Id(1) (keepalive) +481.12 ms
+[  499.84 ms] first view() Id(2) (eDP-1) +14.85 ms
+[  503.42 ms] Opened Id(2) (eDP-1) size Size { width: 1920.0, height: 1200.0 } +18.44 ms
+[  503.44 ms] first RedrawRequested Id(2) (eDP-1) +18.45 ms
+[  505.26 ms] FIRST pointer position via Entered on Id(2) (eDP-1) at (745.3, 692.6) +20.26 ms
+[  505.27 ms] panel at Some(Point { x: 757.29297, y: 704.5625 }) (surface Size { width: 1920.0, height: 1200.0 })
+[  505.94 ms] subscription: mouse::Event::CursorEntered on Id(2) (eDP-1) (no position in event) +20.95 ms
+[  706.13 ms] cycle 1 hide: removing 1 surface(s)
+[  715.52 ms] Closed Id(2) (eDP-1) +230.53 ms
+[  715.97 ms] Unfocused Id(1) (keepalive) +712.09 ms
+[  857.12 ms] === cycle 2 show: creating 1 overlay(s)
+[  857.14 ms] requested overlay Id(3) on eDP-1
+[  869.49 ms] first view() Id(3) (eDP-1) +12.34 ms
+[  873.00 ms] Opened Id(3) (eDP-1) size Size { width: 1920.0, height: 1200.0 } +15.86 ms
+[  873.02 ms] first RedrawRequested Id(3) (eDP-1) +15.88 ms
+[  874.46 ms] FIRST pointer position via Entered on Id(3) (eDP-1) at (745.3, 692.6) +17.31 ms
+[  874.47 ms] panel at Some(Point { x: 757.29297, y: 704.5625 }) (surface Size { width: 1920.0, height: 1200.0 })
+[  874.67 ms] subscription: mouse::Event::CursorEntered on Id(3) (eDP-1) (no position in event) +17.53 ms
+[ 1075.93 ms] cycle 2 hide: removing 1 surface(s)
+[ 1083.45 ms] Closed Id(3) (eDP-1) +226.31 ms
+[ 1083.84 ms] Unfocused Id(1) (keepalive) +1079.95 ms
+[ 1226.91 ms] === cycle 3 show: creating 1 overlay(s)
+[ 1226.93 ms] requested overlay Id(4) on eDP-1
+[ 1237.65 ms] first view() Id(4) (eDP-1) +10.72 ms
+[ 1240.53 ms] Opened Id(4) (eDP-1) size Size { width: 1920.0, height: 1200.0 } +13.60 ms
+[ 1240.55 ms] first RedrawRequested Id(4) (eDP-1) +13.62 ms
+[ 1242.62 ms] FIRST pointer position via Entered on Id(4) (eDP-1) at (745.3, 692.6) +15.69 ms
+[ 1242.64 ms] panel at Some(Point { x: 757.29297, y: 704.5625 }) (surface Size { width: 1920.0, height: 1200.0 })
+[ 1242.81 ms] subscription: mouse::Event::CursorEntered on Id(4) (eDP-1) (no position in event) +15.89 ms
+[ 1444.13 ms] cycle 3 hide: removing 1 surface(s)
+[ 1448.55 ms] Closed Id(4) (eDP-1) +221.62 ms
+[ 1449.00 ms] Unfocused Id(1) (keepalive) +1445.11 ms
+[ 1594.85 ms] exit
+exit=0
+===== $ overlay-probe --ms 3000 --keepalive --copy-test & sleep 1.5; wl-paste -n; (after exit) wl-paste -n
+[    0.13 ms] env: WAYLAND_DISPLAY=Some("wayland-1") XDG_CURRENT_DESKTOP=Some("KDE") WGPU_BACKEND=None ICED_BACKEND=None
+[    2.13 ms] outputs: ["eDP-1"]  opts: Opts { cycles: 1, input_region: false, keepalive: true, kb_late: false, sway_rebase: false, copy_test: true, life_ms: 3000 }
+[    2.15 ms] requested keepalive 1x1 surface Id(1)
+[  396.51 ms] first view() Id(1) (keepalive) +394.36 ms
+[  438.87 ms] === cycle 1 show: creating 1 overlay(s)
+[  438.91 ms] requested overlay Id(2) on eDP-1
+[  438.93 ms] Opened Id(1) (keepalive) size Size { width: 1.0, height: 1.0 } +436.78 ms
+[  438.93 ms] first RedrawRequested Id(1) (keepalive) +436.78 ms
+[  451.90 ms] first view() Id(2) (eDP-1) +13.00 ms
+[  459.05 ms] Opened Id(2) (eDP-1) size Size { width: 1920.0, height: 1200.0 } +20.14 ms
+[  459.08 ms] first RedrawRequested Id(2) (eDP-1) +20.17 ms
+[  510.66 ms] 50 ms fallback fired in cycle 1: no pointer position yet -> center on Some(Id(2))
+[  510.69 ms] copy-test: clipboard::write("qt-probe-clipboard-OK"), overlay removed in 200 ms, daemon stays alive
+[  719.98 ms] Closed Id(2) (eDP-1) +281.07 ms
+during: empty
+[ 2703.35 ms] exit
+after exit: empty

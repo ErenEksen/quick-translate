@@ -1,0 +1,25 @@
+##### --keepalive --sway-rebase
+[  430.75 ms] FIRST pointer position via Entered on Id(3) (HEADLESS-2) at (580.0, 300.0) +113.06 ms
+[ 1459.27 ms] button press on Id(3) at (100.0, 100.0) inside_panel=false
+[ 1459.28 ms] outside click -> hide
+[ 1462.20 ms] cycle 1 hide: removing 2 surface(s)
+[ 1613.01 ms] exit
+##### --keepalive --sway-rebase --input-region
+[  408.19 ms] FIRST pointer position via Entered on Id(3) (HEADLESS-2) at (580.0, 300.0) +75.14 ms
+[  408.20 ms] SetInputRegion on Id(3) -> panel rect (560,312,720,320)
+[  493.82 ms] subscription: CursorLeft on Id(3)
+[ 2533.12 ms] exit
+[  367.80 ms] Focused Id(2) (HEADLESS-1) first=true +63.58 ms
+[  367.81 ms] FIRST pointer position via Entered on Id(3) (HEADLESS-2) at (580.0, 300.0) +63.59 ms
+[  368.09 ms] Focused Id(3) (HEADLESS-2) first=true +63.87 ms
+[ 1096.21 ms] first key Character("a") delivered to Id(3)
+[ 1245.45 ms] exit
+fake pointer at (2500, 300); idling 4s
+[fake-pointer 1500 ms] 1500:key:30
+[fake-pointer 1647 ms] 1600:key:1
+### raw
+[    1.28 ms] keyboard enter #Some(0) (HEADLESS-1)
+[    1.34 ms] keyboard leave #Some(0)
+[    1.35 ms] keyboard enter #Some(1) (HEADLESS-2)
+[  564.59 ms] key 30 Value(Pressed)
+[  564.61 ms] key 30 Value(Released)

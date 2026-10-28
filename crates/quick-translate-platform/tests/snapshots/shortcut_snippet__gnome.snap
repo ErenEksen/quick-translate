@@ -1,0 +1,18 @@
+---
+source: crates/quick-translate-platform/tests/shortcut_snippet.rs
+expression: rendered
+---
+# GNOME
+Open Settings > Keyboard > View and Customize Shortcuts > Custom Shortcuts > Add Shortcut. Name it "Quick Translate", paste this command, and set Ctrl+Alt+C.
+
+/home/you/Applications/QuickTranslate-x86_64.AppImage --toggle
+---
+# GNOME
+Open Settings > Keyboard > View and Customize Shortcuts > Custom Shortcuts > Add Shortcut. Name it "Quick Translate", paste this command, and set Ctrl+Alt+C.
+
+quick-translate --toggle
+---
+# GNOME
+Open Settings > Keyboard > View and Customize Shortcuts > Custom Shortcuts > Add Shortcut. Name it "Quick Translate", paste this command, and set Ctrl+Alt+C.
+
+'/home/you/My Apps/Quick Translate'\''s.AppImage' --toggle
