@@ -65,6 +65,11 @@ Use a release build (`cargo build --release`); debug builds are several times sl
 
 ## Environment knobs for testing
 
+The popup can also be tried without the daemon:
+`cargo run -p quick-translate-ui --example popup_preview`, with `QT_PREVIEW_SWITCH=1` (both
+backends set up), `QT_PREVIEW_RECENT=1` (recent languages filled in), `QT_PREVIEW_SIZE=480x200`,
+`QT_PREVIEW_DARK=1` and `QT_PREVIEW_SECS=0` (stay open).
+
 | Variable | Effect |
 |---|---|
 | `QT_LOG` | Log filter, see "Hot-path latency". |
@@ -182,6 +187,9 @@ Run each of these once, in the environment named.
 | X28 | First run with empty XDG directories: DeepL is the active backend, the portal is asked for Ctrl+Alt+C, and the autostart entry is created. | KDE | PENDING (autostart part: see note 2) |
 | X29 | Offline (network disabled): the translation pane shows a connection error, and the source pane stays editable. Esc still closes the popup. | any | PENDING |
 | X30 | OpenAI-compatible backend with a three-line source text: the translation has three lines and no added commentary. | any | PENDING |
+| X31 | Recent languages: pick three targets and a source in the popup. Each selector lists them newest first above a divider, in the next popup too and after a daemon restart; `config.toml` has `recent-targets`/`recent-sources`. Clicking the divider changes nothing. | any | pass in headless Sway (note 3); PENDING on KDE, GNOME |
+| X32 | DeepL/AI switch: with a DeepL key and an AI endpoint, the header shows a switch. Flipping it translates the text again with the other backend, the source selector changes between "Auto-detect (…)" and "Auto", and the next popup and **Settings → Backend** show the new backend. With only DeepL set up there is no switch. | KDE, GNOME | pass in headless Sway with a mock AI server, DeepL blocked by the sandbox (note 3); PENDING with a real DeepL key |
+| X33 | Header at 480 px wide with the switch: every control is visible, the right-hand controls on a second line. At 720 px everything is on one line. Starting a translation moves no control. | any | pass in headless Sway (note 3) |
 
 Notes:
 
@@ -204,6 +212,16 @@ Notes:
    lines named the new path. `--remove-integration` then removed all three files. On a fresh
    run, the daemon created the autostart entry. The portal part of X28 is still pending
    because no portal was available in that session.
+3. 2026-11-05, headless Sway (`scripts/headless-sway.sh`), a private `dbus-run-session`, a
+   DeepL key set with `SetSessionSecret`, an OpenAI-compatible mock server on `127.0.0.1`, and a
+   persistent wlr virtual pointer for clicks. The real daemon (layer shell, and
+   `QT_POPUP_SHELL=window QT_SELECTION=focus`) showed the switch, re-translated through the
+   mock after a click, wrote `backend = "openai"` and kept the user's comment in `config.toml`,
+   and kept the switch state and a picked target (listed first in the menu) after closing and
+   reopening the popup. DeepL itself could not be reached from that sandbox, so the DeepL side
+   only showed the connection error. `popup_preview` screenshots covered 480, 600, 650 and
+   720 px, light and dark. This run found that a shortened selector label kept half of its old
+   glyphs in the layer-shell popup; fixed in `patches/iced_graphics` and re-checked.
 
 ## Spec scenario mapping
 
@@ -372,6 +390,24 @@ run in CI yet (task 9.4).
 | Dark mode | `crates/quick-translate-ui/src/theme.rs::light_unless_dark_is_preferred`, `crates/quick-translate-platform/src/appearance.rs::only_prefer_dark_is_dark` | X8 | partial: mapping only |
 | Runtime change | `crates/quick-translate/src/runtime/core.rs::theme_changes_reach_the_shell_once`, `crates/quick-translate-platform/src/appearance.rs::signal_values` | X8 | partial: no live portal signal |
 | Change target language by keyboard | `crates/quick-translate-ui/src/popup/tests.rs::target_selector_by_keyboard`, `crates/quick-translate-ui/src/popup/tests.rs::target_chosen_with_arrows_starts_after_debounce`, `crates/quick-translate-ui/src/popup/tests.rs::tab_cycles_through_all_enabled_controls` | X9 | full (update level) |
+
+### translation-popup (add-recent-languages-and-backend-switch)
+
+Scenarios from `openspec/changes/add-recent-languages-and-backend-switch/specs/translation-popup/spec.md`.
+
+| Scenario | Automated | Manual | Coverage |
+|---|---|---|---|
+| Recent targets on top | `crates/quick-translate-ui/src/popup/tests.rs::selectors_list_recent_languages_first`, `crates/quick-translate-ui/src/popup/tests.rs::picking_targets_keeps_the_three_most_recent`, `crates/quick-translate/src/runtime/core.rs::picked_languages_become_recent_for_the_next_popup`, `crates/quick-translate-core/src/config.rs::recents_round_trip_and_empty_lists_leave_no_key` | X31 | full (update level, menu rows as text) |
+| Re-picking moves a language to the front | `crates/quick-translate-core/src/config.rs::remember_target_keeps_three_most_recent_first`, `crates/quick-translate-ui/src/popup/tests.rs::picking_targets_keeps_the_three_most_recent` | X31 | full |
+| Fourth language | `crates/quick-translate-core/src/language.rs::push_recent_is_most_recently_used`, `crates/quick-translate-ui/src/popup/tests.rs::picking_targets_keeps_the_three_most_recent` | X31 | full |
+| Recent sources | `crates/quick-translate-ui/src/popup/tests.rs::picking_sources_remembers_languages_but_not_auto`, `crates/quick-translate-ui/src/popup/tests.rs::keyboard_browsing_remembers_only_the_final_choice`, `crates/quick-translate/src/runtime/persist.rs::recents_and_backend_switch_merge_into_the_file` | X31 | full (as a chain) |
+| Divider row | `crates/quick-translate-ui/src/popup/tests.rs::separator_row_keeps_focus_and_changes_nothing` | X31 | partial: that the divider maps to `SelectorClosed` is checked only in the view code |
+| Switch to AI | `crates/quick-translate-ui/src/popup/tests.rs::switching_backends_translates_the_text_again`, `crates/quick-translate-ui/src/host.rs::switch_swaps_translators_and_tells_the_daemon`, `crates/quick-translate/src/runtime/core.rs::both_backends_reach_the_popup_and_the_switch_sticks` | X32 | full (daemon level, no live backend) |
+| Switch back | `crates/quick-translate-ui/src/popup/tests.rs::switching_backends_translates_the_text_again` | X32 | partial: DeepL's detection after switching back is manual |
+| Only one backend set up | `crates/quick-translate/src/runtime/backend.rs::deepl_without_key_is_not_configured`, `crates/quick-translate/src/runtime/backend.rs::no_switch_without_deepl_key_or_with_broken_ai_endpoint`, `crates/quick-translate-ui/src/popup/tests.rs::switch_is_offered_only_between_two_usable_backends` | X32 | full |
+| Results of the previous backend | `crates/quick-translate-ui/src/popup/tests.rs::switching_mid_stream_drops_the_old_backend_results` | X32 | full (update level) |
+| Minimum width | `crates/quick-translate-ui/src/popup/header.rs::right_group_moves_below_when_space_runs_out` | X33 | partial: the arrangement math; the rendering is manual |
+| Translation starts | `crates/quick-translate-ui/src/popup/header.rs::status_never_moves_the_groups` | X33 | partial: as above |
 
 ### Summary
 

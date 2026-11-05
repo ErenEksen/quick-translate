@@ -62,7 +62,9 @@ fn write(path: &std::path::Path, changes: &[Change]) {
 
 fn apply(config: &mut Config, change: &Change) {
     match change {
-        Change::Popup(Persist::Target(code)) => config.target_lang = Some(code.clone()),
+        Change::Popup(Persist::Target(code)) => config.remember_target(code),
+        Change::Popup(Persist::Source(code)) => config.remember_source(code),
+        Change::Popup(Persist::Backend(kind)) => config.backend = *kind,
         Change::Popup(Persist::Splitter(ratio)) => config.popup.splitter = *ratio,
         Change::Popup(Persist::Size(size)) => {
             config.popup.width = size.width.round();
@@ -98,6 +100,33 @@ mod tests {
         assert_eq!(config.target_lang.as_deref(), Some("DE"));
         assert_eq!((config.popup.width, config.popup.height), (900.0, 400.0));
         assert_eq!(config.deepl.cached_host.as_deref(), Some("api.deepl.com"));
+    }
+
+    #[test]
+    fn recents_and_backend_switch_merge_into_the_file() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("config.toml");
+        // The settings window (or the user) wrote this meanwhile; it must survive.
+        std::fs::write(
+            &path,
+            "recent-targets = [\"JA\", \"KO\"]\n[openai]\nmodel = \"llama3\"\n",
+        )
+        .expect("write");
+        write(
+            &path,
+            &[
+                Change::Popup(Persist::Target("DE".into())),
+                Change::Popup(Persist::Source("EN".into())),
+                Change::Popup(Persist::Backend(quick_translate_core::BackendKind::Openai)),
+                Change::Popup(Persist::Target("JA".into())),
+            ],
+        );
+        let config = ConfigStore::new(&path).load().config().clone();
+        assert_eq!(config.target_lang.as_deref(), Some("JA"));
+        assert_eq!(config.recent_targets, ["JA", "DE", "KO"]);
+        assert_eq!(config.recent_sources, ["EN"]);
+        assert_eq!(config.backend, quick_translate_core::BackendKind::Openai);
+        assert_eq!(config.openai.model, "llama3");
     }
 
     #[test]

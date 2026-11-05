@@ -9,6 +9,23 @@ Quick Translate sends the selected text to one of two services, picked in
 
 Switching backends takes effect on the next translation, with no restart.
 
+### Switching in the popup
+
+Once **both** backends are set up, the popup header shows a small switch in front of the
+backend name. Click it (or Tab to it and press Space or Enter) to flip between DeepL (off) and
+the AI model (on). The text in the popup is translated again right away with the other
+backend, and the choice is saved as `backend` in `config.toml`, so the next popup uses it too.
+It is the same setting as **Settings → Backend**.
+
+A backend counts as set up when:
+
+- **DeepL**: an API key is stored.
+- **OpenAI-compatible**: the base URL and model are filled in, and either an API key is stored
+  or the base URL is not the default `https://api.openai.com/v1`. Local servers such as Ollama
+  or LM Studio need no key, so pointing the base URL at one is enough.
+
+With only one backend set up, the header shows the backend name without a switch, as before.
+
 API keys are stored only in the desktop keyring through the Secret Service API (GNOME
 Keyring, KWallet 6, KeePassXC and others). They are saved under the attributes
 `application = io.github.quicktranslate.QuickTranslate` and `backend = deepl` or

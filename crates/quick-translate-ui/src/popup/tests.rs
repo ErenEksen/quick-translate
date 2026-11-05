@@ -4,7 +4,7 @@ use futures::StreamExt;
 use iced::keyboard::{self, Modifiers, key};
 use iced::widget::text_editor::{Action, Binding, Edit, KeyPress, Motion, Status};
 use quick_translate_backends::{Chunk, ChunkStream, Error, Request, Translator};
-use quick_translate_core::Language;
+use quick_translate_core::{BackendKind, Language};
 use tokio_util::sync::CancellationToken;
 
 use super::keys::{source_binding, translation_binding};
@@ -46,6 +46,7 @@ static TARGETS: &[Language] = &[
 
 fn deepl() -> BackendInfo {
     BackendInfo {
+        kind: BackendKind::Deepl,
         label: "DeepL".into(),
         configured: true,
         reports_detected: true,
@@ -55,11 +56,14 @@ fn deepl() -> BackendInfo {
 fn options(target: &str, backend: BackendInfo) -> OpenOptions {
     OpenOptions {
         target_lang: target.into(),
+        recent_targets: Vec::new(),
+        recent_sources: Vec::new(),
         languages: Languages {
             sources: SOURCES,
             targets: TARGETS,
         },
         backend,
+        alternate: None,
         splitter: 0.5,
         theme: Theme::Light,
     }
@@ -216,6 +220,7 @@ fn deltas_accumulate_and_detected_language_is_shown() {
 #[test]
 fn backend_without_detection_shows_plain_auto() {
     let backend = BackendInfo {
+        kind: BackendKind::Openai,
         label: "AI: llama3".into(),
         configured: true,
         reports_detected: false,
@@ -1017,4 +1022,485 @@ fn view_builds_in_every_state() {
         ..deepl()
     };
     let _ = Popup::new(options("TR", backend)).view();
+}
+
+// --- recent languages ---
+
+fn with_recent(target: &str, targets: &[&str], sources: &[&str]) -> Popup {
+    let mut options = options(target, deepl());
+    options.recent_targets = targets.iter().map(|c| (*c).to_owned()).collect();
+    options.recent_sources = sources.iter().map(|c| (*c).to_owned()).collect();
+    Popup::new(options)
+}
+
+fn target_rows(p: &Popup) -> Vec<String> {
+    p.target_options()
+        .0
+        .iter()
+        .map(ToString::to_string)
+        .collect()
+}
+
+fn source_rows(p: &Popup) -> Vec<String> {
+    p.source_options()
+        .0
+        .iter()
+        .map(ToString::to_string)
+        .collect()
+}
+
+#[test]
+fn recent_languages_from_the_config_are_cleaned() {
+    // Lowercase, unknown and duplicate codes; more than three entries.
+    let p = with_recent(
+        "TR",
+        &["tr", "XX", "TR", "de", "EN-GB", "EN-US"],
+        &["en", "EN-US", ""],
+    );
+    assert_eq!(p.recent_targets(), ["TR", "DE", "EN-GB"]);
+    assert_eq!(p.recent_sources(), ["EN"]);
+    let p = popup("TR");
+    assert!(p.recent_targets().is_empty());
+    assert!(p.recent_sources().is_empty());
+}
+
+#[test]
+fn selectors_list_recent_languages_first() {
+    let p = with_recent("DE", &["DE", "TR"], &["TR"]);
+    assert_eq!(
+        target_rows(&p),
+        [
+            "German",
+            "Turkish",
+            view::SEPARATOR,
+            "German",
+            "English (British)",
+            "English (American)",
+            "Turkish",
+        ]
+    );
+    assert_eq!(
+        source_rows(&p),
+        [
+            "Auto-detect",
+            "Turkish",
+            view::SEPARATOR,
+            "German",
+            "English",
+            "Turkish",
+        ]
+    );
+    // The selected row is the recent copy, so the open menu highlights the top of the list.
+    let (targets, selected) = p.target_options();
+    assert_eq!(selected, targets.first().copied());
+}
+
+#[test]
+fn selectors_without_recent_languages_have_no_separator() {
+    let p = popup("TR");
+    assert_eq!(
+        target_rows(&p),
+        [
+            "German",
+            "English (British)",
+            "English (American)",
+            "Turkish"
+        ]
+    );
+    assert_eq!(
+        source_rows(&p),
+        ["Auto-detect", "German", "English", "Turkish"]
+    );
+    let (targets, selected) = p.target_options();
+    assert_eq!(selected, targets.last().copied());
+    assert_eq!(p.source_options().1, p.source_options().0[0]);
+}
+
+#[test]
+fn selected_language_outside_the_recents_is_the_full_list_row() {
+    let mut p = with_recent("DE", &["DE"], &["EN"]);
+    let _ = p.update(Message::SourceLanguageSelected(Some("TR")));
+    // TR became the most recent source, so it is selected among the recents.
+    let (sources, selected) = p.source_options();
+    assert_eq!(selected, sources[1]);
+    assert_eq!(selected.to_string(), "Turkish");
+    let p = with_recent("TR", &["DE"], &[]);
+    let (targets, selected) = p.target_options();
+    assert_eq!(selected.map(|o| o.to_string()).as_deref(), Some("Turkish"));
+    assert_eq!(selected, targets.last().copied());
+}
+
+#[test]
+fn picking_targets_keeps_the_three_most_recent() {
+    let mut p = translated("TR", "Hello", Some("EN"), "Merhaba");
+    assert!(
+        p.recent_targets().is_empty(),
+        "the locale default is not a pick"
+    );
+    for code in ["DE", "EN-GB", "EN-US"] {
+        let fx = p.update(Message::TargetLanguageSelected(code));
+        assert!(fx.contains(&Effect::PersistTarget(code.into())));
+    }
+    assert_eq!(p.recent_targets(), ["EN-US", "EN-GB", "DE"]);
+    let fx = p.update(Message::TargetLanguageSelected("TR"));
+    assert!(fx.contains(&Effect::PersistTarget("TR".into())));
+    assert_eq!(p.recent_targets(), ["TR", "EN-US", "EN-GB"]);
+    let _ = p.update(Message::TargetLanguageSelected("EN-GB"));
+    assert_eq!(p.recent_targets(), ["EN-GB", "TR", "EN-US"]);
+    // Re-picking the current and most recent target sends nothing.
+    assert!(
+        p.update(Message::TargetLanguageSelected("EN-GB"))
+            .is_empty()
+    );
+}
+
+#[test]
+fn explicitly_picking_the_current_target_makes_it_recent() {
+    let mut p = translated("TR", "Hello", Some("EN"), "Merhaba");
+    let fx = p.update(Message::TargetLanguageSelected("TR"));
+    assert_eq!(fx, vec![Effect::PersistTarget("TR".into())]);
+    assert_eq!(p.recent_targets(), ["TR"]);
+    assert!(started(&fx).is_none(), "same target: no new request");
+}
+
+#[test]
+fn picking_sources_remembers_languages_but_not_auto() {
+    let mut p = translated("TR", "Hello", Some("EN"), "Merhaba");
+    let fx = p.update(Message::SourceLanguageSelected(Some("EN")));
+    assert!(fx.contains(&Effect::RememberSource("EN".into())));
+    assert!(started(&fx).is_some());
+    let fx = p.update(Message::SourceLanguageSelected(None));
+    assert!(!fx.iter().any(|e| matches!(e, Effect::RememberSource(_))));
+    let _ = p.update(Message::SourceLanguageSelected(Some("DE")));
+    let _ = p.update(Message::SourceLanguageSelected(Some("TR")));
+    let fx = p.update(Message::SourceLanguageSelected(Some("EN")));
+    assert!(fx.contains(&Effect::RememberSource("EN".into())));
+    assert_eq!(p.recent_sources(), ["EN", "TR", "DE"]);
+    // Picking the current, most recent source again does nothing.
+    assert!(
+        p.update(Message::SourceLanguageSelected(Some("EN")))
+            .is_empty()
+    );
+}
+
+#[test]
+fn keyboard_browsing_remembers_only_the_final_choice() {
+    let mut p = translated("TR", "Hello", Some("EN"), "Merhaba");
+    let _ = p.update(Message::SelectorOpened(Control::SourceLanguage));
+    let _ = p.update(Message::Key(Key::Down));
+    let fx = p.update(Message::Key(Key::Down));
+    assert!(!fx.iter().any(|e| matches!(e, Effect::RememberSource(_))));
+    assert_eq!(p.source_lang(), Some("EN"));
+    let fx = p.update(Message::DebounceElapsed(debounce(&fx).expect("debounce")));
+    assert!(fx.contains(&Effect::RememberSource("EN".into())));
+    assert_eq!(p.recent_sources(), ["EN"]);
+
+    // Enter commits at once, for targets too.
+    let _ = p.update(Message::SelectorOpened(Control::TargetLanguage));
+    let _ = p.update(Message::Key(Key::Home));
+    let fx = p.update(Message::Key(Key::Enter));
+    assert!(fx.contains(&Effect::PersistTarget("DE".into())));
+    assert_eq!(p.recent_targets(), ["DE"]);
+}
+
+#[test]
+fn swap_remembers_both_new_languages() {
+    let mut p = translated("TR", "Hello world", Some("EN"), "Merhaba dünya");
+    let fx = p.update(Message::SwapPressed);
+    assert!(fx.contains(&Effect::PersistTarget("EN-US".into())));
+    assert!(fx.contains(&Effect::RememberSource("TR".into())));
+    assert_eq!(p.recent_targets(), ["EN-US"]);
+    assert_eq!(p.recent_sources(), ["TR"]);
+}
+
+#[test]
+fn separator_row_keeps_focus_and_changes_nothing() {
+    let mut p = with_recent("DE", &["DE"], &["EN"]);
+    let _ = p.update(Message::Captured {
+        text: "Hallo".into(),
+        truncated: false,
+    });
+    assert!(
+        p.update(Message::SelectorClosed(Control::TargetLanguage))
+            .is_empty()
+    );
+    assert_eq!(p.focused(), Some(Control::TargetLanguage));
+    assert_eq!(p.target_lang(), "DE");
+    assert!(
+        p.update(Message::SelectorClosed(Control::SourceLanguage))
+            .is_empty()
+    );
+    assert_eq!(p.source_lang(), None);
+}
+
+#[test]
+fn reset_takes_the_recents_of_the_new_activation() {
+    let mut p = with_recent("DE", &["DE"], &["EN"]);
+    let _ = p.update(Message::TargetLanguageSelected("TR"));
+    assert_eq!(p.recent_targets(), ["TR", "DE"]);
+    let mut next = options("TR", deepl());
+    next.recent_targets = vec!["TR".into(), "DE".into(), "EN-GB".into()];
+    let _ = p.reset(next);
+    assert_eq!(p.recent_targets(), ["TR", "DE", "EN-GB"]);
+    assert!(p.recent_sources().is_empty());
+}
+
+// --- DeepL/AI switch ---
+
+fn ai() -> BackendInfo {
+    BackendInfo {
+        kind: BackendKind::Openai,
+        label: "AI: llama3".into(),
+        configured: true,
+        reports_detected: false,
+    }
+}
+
+fn switchable(target: &str) -> Popup {
+    let mut options = options(target, deepl());
+    options.alternate = Some(ai());
+    Popup::new(options)
+}
+
+#[test]
+fn switch_is_offered_only_between_two_usable_backends() {
+    assert!(popup("TR").alternate_backend().is_none());
+    assert_eq!(
+        switchable("TR").alternate_backend().map(|b| b.kind),
+        Some(BackendKind::Openai)
+    );
+    // An unconfigured alternate, an unconfigured active backend or two of the same kind.
+    for (active, alternate) in [
+        (
+            deepl(),
+            BackendInfo {
+                configured: false,
+                ..ai()
+            },
+        ),
+        (
+            BackendInfo {
+                configured: false,
+                ..deepl()
+            },
+            ai(),
+        ),
+        (deepl(), deepl()),
+    ] {
+        let mut options = options("TR", active);
+        options.alternate = Some(alternate);
+        let p = Popup::new(options);
+        assert!(p.alternate_backend().is_none());
+        assert!(!p.is_enabled(Control::Backend));
+    }
+}
+
+#[test]
+fn switching_backends_translates_the_text_again() {
+    let mut p = switchable("TR");
+    let fx = p.update(Message::Captured {
+        text: "Hello".into(),
+        truncated: false,
+    });
+    let (first, _) = started(&fx).expect("request");
+    let _ = p.update(Message::Chunk {
+        id: first,
+        chunk: Chunk::Detected("EN".into()),
+    });
+    let _ = p.update(Message::Chunk {
+        id: first,
+        chunk: Chunk::Delta("Merhaba".into()),
+    });
+    let _ = p.update(Message::TranslationFinished { id: first });
+    assert_eq!(p.auto_label(), "Auto-detect (English)");
+
+    let fx = p.update(Message::BackendToggled);
+    assert_eq!(p.backend().kind, BackendKind::Openai);
+    assert_eq!(
+        p.alternate_backend().map(|b| b.kind),
+        Some(BackendKind::Deepl)
+    );
+    assert_eq!(p.focused(), Some(Control::Backend));
+    // The switch comes before the request that must use the new backend.
+    let switch_at = fx
+        .iter()
+        .position(|e| *e == Effect::SwitchBackend(BackendKind::Openai))
+        .expect("switch");
+    let start_at = fx
+        .iter()
+        .position(|e| matches!(e, Effect::StartTranslation { .. }))
+        .expect("same text sent again");
+    assert!(switch_at < start_at);
+    let (second, request) = started(&fx).expect("request");
+    assert!(second > first);
+    assert_eq!(request.text, "Hello");
+    assert_eq!(request.target_lang, "TR");
+    assert_eq!(p.status(), &TranslationStatus::Loading);
+    assert_eq!(p.translation_text(), "");
+    // The AI backend reports no detection.
+    assert_eq!(p.detected_lang(), None);
+    assert_eq!(p.auto_label(), "Auto");
+
+    // And back to DeepL.
+    let fx = p.update(Message::BackendToggled);
+    assert_eq!(fx[0], Effect::CancelTranslation(second));
+    assert!(fx.contains(&Effect::SwitchBackend(BackendKind::Deepl)));
+    assert_eq!(p.backend().kind, BackendKind::Deepl);
+    assert!(started(&fx).is_some());
+}
+
+#[test]
+fn switching_mid_stream_drops_the_old_backend_results() {
+    let mut p = switchable("TR");
+    let fx = p.update(Message::Captured {
+        text: "Hello".into(),
+        truncated: false,
+    });
+    let (old, _) = started(&fx).expect("request");
+    let _ = p.update(Message::Chunk {
+        id: old,
+        chunk: Chunk::Delta("Mer".into()),
+    });
+    let fx = p.update(Message::BackendToggled);
+    assert_eq!(fx[0], Effect::CancelTranslation(old));
+    let (new, _) = started(&fx).expect("request");
+    let _ = p.update(Message::Chunk {
+        id: old,
+        chunk: Chunk::Delta("haba".into()),
+    });
+    let _ = p.update(Message::TranslationFinished { id: old });
+    assert_eq!(p.translation_text(), "");
+    assert_eq!(p.current_translation(), Some(new));
+    assert_eq!(p.status(), &TranslationStatus::Loading);
+}
+
+#[test]
+fn switching_while_capture_is_pending_or_text_is_empty_sends_nothing() {
+    let mut p = switchable("TR");
+    let fx = p.update(Message::BackendToggled);
+    assert_eq!(fx, vec![Effect::SwitchBackend(BackendKind::Openai)]);
+    assert!(p.is_capture_pending());
+    // The capture then goes to the new backend.
+    let fx = p.update(Message::Captured {
+        text: "Hello".into(),
+        truncated: false,
+    });
+    assert!(started(&fx).is_some());
+    assert_eq!(p.backend().kind, BackendKind::Openai);
+
+    let mut p = switchable("TR");
+    let _ = p.update(Message::Captured {
+        text: "  ".into(),
+        truncated: false,
+    });
+    let fx = p.update(Message::BackendToggled);
+    assert_eq!(fx, vec![Effect::SwitchBackend(BackendKind::Openai)]);
+    assert_eq!(p.status(), &TranslationStatus::Idle);
+}
+
+#[test]
+fn switching_after_a_failure_retries_with_the_other_backend() {
+    let mut p = switchable("TR");
+    let fx = p.update(Message::Captured {
+        text: "Hello".into(),
+        truncated: false,
+    });
+    let (id, _) = started(&fx).expect("request");
+    let _ = p.update(Message::TranslationFailed {
+        id,
+        error: Error::QuotaExceeded,
+    });
+    assert!(matches!(p.status(), TranslationStatus::Failed(_)));
+    let fx = p.update(Message::BackendToggled);
+    assert!(started(&fx).is_some());
+    assert_eq!(p.status(), &TranslationStatus::Loading);
+}
+
+#[test]
+fn without_an_alternate_the_toggle_does_nothing() {
+    let mut p = translated("TR", "Hello", Some("EN"), "Merhaba");
+    assert!(p.update(Message::BackendToggled).is_empty());
+    assert_eq!(p.backend().kind, BackendKind::Deepl);
+    assert_eq!(p.status(), &TranslationStatus::Done);
+}
+
+#[test]
+fn switch_is_in_the_tab_order_and_works_from_the_keyboard() {
+    let mut p = switchable("TR");
+    let _ = p.update(Message::Captured {
+        text: "Hello".into(),
+        truncated: false,
+    });
+    let mut seen = Vec::new();
+    for _ in 0..4 {
+        seen.push(tab(&mut p, true).0.expect("focus"));
+    }
+    assert_eq!(
+        seen,
+        [
+            Control::Splitter,
+            Control::TranslationPane,
+            Control::SourceLanguage,
+            Control::TargetLanguage,
+        ]
+    );
+    assert_eq!(tab(&mut p, true).0, Some(Control::Backend));
+    let fx = p.update(Message::Key(Key::Space));
+    assert!(fx.contains(&Effect::SwitchBackend(BackendKind::Openai)));
+    let fx = p.update(Message::Key(Key::Enter));
+    assert!(fx.contains(&Effect::SwitchBackend(BackendKind::Deepl)));
+    // Arrow keys do not flip it.
+    assert!(p.update(Message::Key(Key::Left)).is_empty());
+    assert_eq!(tab(&mut p, true).0, Some(Control::HeaderSettings));
+}
+
+#[test]
+fn switched_popup_keeps_languages_and_recents() {
+    let mut p = switchable("TR");
+    let _ = p.update(Message::Captured {
+        text: "Hallo".into(),
+        truncated: false,
+    });
+    let _ = p.update(Message::SourceLanguageSelected(Some("DE")));
+    let _ = p.update(Message::TargetLanguageSelected("EN-GB"));
+    let fx = p.update(Message::BackendToggled);
+    let (_, request) = started(&fx).expect("request");
+    assert_eq!(request.source_lang.as_deref(), Some("DE"));
+    assert_eq!(request.target_lang, "EN-GB");
+    assert_eq!(p.recent_targets(), ["EN-GB"]);
+    assert_eq!(p.recent_sources(), ["DE"]);
+}
+
+#[test]
+fn reset_restores_the_backends_of_the_new_activation() {
+    let mut p = switchable("TR");
+    let _ = p.update(Message::BackendToggled);
+    assert_eq!(p.backend().kind, BackendKind::Openai);
+    let _ = p.reset(options("TR", deepl()));
+    assert_eq!(p.backend().kind, BackendKind::Deepl);
+    assert!(p.alternate_backend().is_none());
+}
+
+#[test]
+fn view_builds_with_switch_and_recents() {
+    let mut options = options("TR", deepl());
+    options.alternate = Some(ai());
+    options.recent_targets = vec!["DE".into(), "TR".into()];
+    options.recent_sources = vec!["EN".into()];
+    let mut p = Popup::new(options);
+    let _ = p.view();
+    let fx = p.update(Message::Captured {
+        text: "Hello".into(),
+        truncated: false,
+    });
+    let _ = p.view();
+    let (id, _) = started(&fx).expect("request");
+    let _ = p.update(Message::Chunk {
+        id,
+        chunk: Chunk::Delta("Merhaba".into()),
+    });
+    let _ = p.view();
+    let _ = p.update(Message::BackendToggled);
+    let _ = p.update(Message::Key(Key::Tab));
+    let _ = p.view();
 }

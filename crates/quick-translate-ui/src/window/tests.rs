@@ -1,6 +1,7 @@
 use std::pin::Pin;
 
 use quick_translate_backends::{ChunkStream, Request, Translator};
+use quick_translate_core::BackendKind;
 use tokio::sync::mpsc::error::TryRecvError;
 use tokio_util::sync::CancellationToken;
 
@@ -27,17 +28,22 @@ fn request(session: u64, capture: CaptureMode) -> ShowRequest {
         activation_token: Some("token".into()),
         open: OpenOptions {
             target_lang: "DE".into(),
+            recent_targets: Vec::new(),
+            recent_sources: Vec::new(),
             languages: Languages::deepl(),
             backend: BackendInfo {
+                kind: BackendKind::Deepl,
                 label: "DeepL".into(),
                 configured: true,
                 reports_detected: true,
             },
+            alternate: None,
             splitter: 0.5,
             theme: Theme::Light,
         },
         size: Size::new(720.0, 320.0),
         translator: Arc::new(Never),
+        alternate_translator: None,
         capture,
         notice: None,
         triggered_at: Instant::now(),

@@ -516,10 +516,14 @@ async fn saves_keep_daemon_written_values_and_unknown_keys() {
     let mut s = open(&rt).await;
     assert_eq!(s.config().popup.width, 900.0);
 
-    // The daemon persists a new popup size while settings is open.
+    // The daemon persists a new popup size, recent languages and a backend switched from the
+    // popup while settings is open.
     let mut store = ConfigStore::new(&path);
     let mut config = store.load().config().clone();
     config.popup.width = 1000.0;
+    config.remember_target("DE");
+    config.remember_source("EN");
+    config.backend = BackendKind::Openai;
     store.save(&config).unwrap();
 
     drive(&mut s, &rt, Message::AutostartToggled(false)).await;
@@ -533,6 +537,10 @@ async fn saves_keep_daemon_written_values_and_unknown_keys() {
     let config = ConfigStore::new(&path).load().config().clone();
     assert_eq!(config.popup.width, 1000.0);
     assert!(!config.autostart);
+    assert_eq!(config.recent_targets, ["DE"]);
+    assert_eq!(config.recent_sources, ["EN"]);
+    assert_eq!(config.backend, BackendKind::Openai);
+    assert_eq!(config.target_lang.as_deref(), Some("DE"));
 }
 
 #[tokio::test(flavor = "multi_thread")]

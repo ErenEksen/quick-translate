@@ -333,7 +333,7 @@ async fn startup(
     let http = build_client(Duration::from_secs(config.request_timeout_secs.max(1)))
         .map_err(|err| anyhow::anyhow!("cannot create the HTTP client: {err}"))?;
     let secrets = Arc::new(SecretStore::connect().await);
-    let backend = backend::build(&config, &secrets, &http, &persist).await;
+    let backends = backend::build(&config, &secrets, &http, &persist).await;
 
     let (scheme, color_scheme) = match zbus::Connection::session().await {
         Ok(connection) => appearance::watch(&connection).await,
@@ -372,7 +372,7 @@ async fn startup(
         }),
         (ShellKind::Layer | ShellKind::Headless, _) => Launch::Headless(shell_end),
     };
-    let popups = Popups::new(daemon_end.commands, capture, backend, config, theme);
+    let popups = Popups::new(daemon_end.commands, capture, backends, config, theme);
     let service = Service {
         popups,
         shell_events: daemon_end.events,
