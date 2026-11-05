@@ -2,8 +2,10 @@
 
 use std::fmt;
 
-use iced::widget::{button, column, container, pick_list, row, text, text_editor, toggler};
-use iced::{Background, Border, Center, Color, Element, Fill, Padding, Theme};
+use iced::widget::{
+    button, column, container, mouse_area, pick_list, row, text, text_editor, toggler,
+};
+use iced::{Background, Border, Center, Color, Element, Fill, Padding, Theme, mouse};
 use quick_translate_core::{BackendKind, Language, MAX_SOURCE_CHARS};
 
 use super::header::Header;
@@ -186,15 +188,21 @@ impl Popup {
         // With both backends set up, the backend name becomes the label of a small switch
         // (on = AI); otherwise it stays plain text.
         let backend: Element<'_, Message> = if self.alternate.is_some() {
-            let switch = toggler(self.backend.kind == BackendKind::Openai)
-                .label(self.backend.label.as_str())
+            // `toggler` only draws its own label after the switch, so this one is separate and
+            // clickable by hand.
+            let label = mouse_area(
+                text(self.backend.label.as_str())
+                    .size(SMALL_TEXT)
+                    .style(text::secondary),
+            )
+            .on_press(Message::BackendToggled)
+            .interaction(mouse::Interaction::Pointer);
+            let toggle = toggler(self.backend.kind == BackendKind::Openai)
                 .size(SWITCH_SIZE)
-                .text_size(SMALL_TEXT)
-                .spacing(4)
-                .on_toggle(|_| Message::BackendToggled)
-                .style(switch_style);
-            // A little room after the label so the focus ring does not touch it.
-            let switch = container(switch).padding(Padding::ZERO.right(4));
+                .on_toggle(|_| Message::BackendToggled);
+            let switch = row![label, toggle].spacing(4).align_y(Center);
+            // A little room before the label so the focus ring does not touch it.
+            let switch = container(switch).padding(Padding::ZERO.left(4));
             self.ring(Control::Backend, switch)
         } else {
             text(self.backend.label.as_str())
@@ -325,14 +333,6 @@ fn focus_ring(theme: &Theme, focused: bool) -> container::Style {
             radius: 6.0.into(),
         },
         ..container::Style::default()
-    }
-}
-
-/// The default switch with the secondary text color the plain backend label uses.
-fn switch_style(theme: &Theme, status: toggler::Status) -> toggler::Style {
-    toggler::Style {
-        text_color: text::secondary(theme).color,
-        ..toggler::default(theme, status)
     }
 }
 
