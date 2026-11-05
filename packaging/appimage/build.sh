@@ -161,7 +161,8 @@ fetch() { # url sha256 dest
         return 0
     fi
     log "Downloading $url"
-    curl -fsSL --retry 3 -o "$dest.part" "$url"
+    # GitHub release downloads can return 504 for a minute or more: curl's default backoff gives up in 7s.
+    curl -fsSL --retry 6 --retry-delay 20 --retry-all-errors -o "$dest.part" "$url"
     echo "$sum  $dest.part" | sha256sum -c --quiet
     mv "$dest.part" "$dest"
 }
