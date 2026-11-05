@@ -480,10 +480,10 @@ Task 9.4: `.github/workflows/release.yml` runs on a `v*` tag (and manually throu
 | Job | Runs in | What it does |
 |---|---|---|
 | `version` | ubuntu-24.04 | Version = tag without `v`; fails unless it equals `[workspace.package] version` |
-| `appimage` | `ubuntu:22.04` job container | `build.sh --no-container --install-deps --update-info "gh-releases-zsync\|<owner>\|<repo>\|latest\|…"`, uploads the AppImage and `.zsync` |
-| `smoke` | `ubuntu:22.04`, `debian:12`, `fedora:44` job containers (no FUSE) | `smoke-test.sh --no-audit --require-zsync <AppImage> <version>` on the bare image, then binutils and `audit.sh` |
+| `appimage` | `ubuntu:22.04` job container | `build.sh --no-container --install-deps --update-info "gh-releases-zsync\|<owner>\|<repo>\|latest\|…"`, uploads the AppImage, `.zsync` and standalone binary (copied from the AppDir) |
+| `smoke` | `ubuntu:22.04`, `debian:12`, `fedora:44` job containers (no FUSE) | `smoke-test.sh --no-audit --require-zsync <AppImage> <version>` on the bare image, `--version` of the standalone binary, then binutils and `audit.sh` |
 | `nix` | ubuntu-24.04 + `cachix/install-nix-action@v31` | `nix build`, `nix run . -- --version` must print `quick-translate <version>` |
-| `release` | ubuntu-24.04, tag pushes only, `contents: write` | `SHA256SUMS`, then `softprops/action-gh-release@v2` with the AppImage, `.zsync` and `SHA256SUMS` (prerelease when the version has a `-`) |
+| `release` | ubuntu-24.04, tag pushes only, `contents: write` | `SHA256SUMS`, then `softprops/action-gh-release@v2` with the AppImage, `.zsync`, binary and `SHA256SUMS` (prerelease when the version has a `-`) |
 
 `packaging/appimage/smoke-test.sh [--audit|--no-audit] [--require-zsync] <AppImage> [expected-version]`
 is shared by CI and local runs. Every launch uses `env -i` with a throwaway `HOME`,
@@ -530,5 +530,5 @@ and `ci.yml`; `shellcheck packaging/appimage/smoke-test.sh` is clean.
 Not verified: a real tag push on GitHub (job containers, artifact upload and download, the
 Release upload and `GITHUB_TOKEN` permissions). Before the first release, push a test tag such as
 `v0.1.0` in a fork (or run the workflow manually for a dry run) and check that the Release holds
-the AppImage, `.zsync` and `SHA256SUMS`, and that the embedded update information names the
+the AppImage, `.zsync`, binary and `SHA256SUMS`, and that the embedded update information names the
 repository that built it.

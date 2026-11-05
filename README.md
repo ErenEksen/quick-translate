@@ -40,6 +40,14 @@ chmod +x quick-translate-*-x86_64.AppImage
 ./quick-translate-*-x86_64.AppImage
 ```
 
+**Binary** (x86_64, glibc 2.35 or newer): download `quick-translate-<version>-x86_64` from the
+same page, then
+
+```sh
+chmod +x quick-translate-*-x86_64
+./quick-translate-*-x86_64
+```
+
 **Nix**: `nix run github:ErenEksen/quick-translate`
 
 **From source** (Rust 1.95+, `pkg-config`, Wayland and xkbcommon development files):

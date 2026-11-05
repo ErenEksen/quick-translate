@@ -1,9 +1,9 @@
 name: Release
 
-# tasks.md 9.4, design D11. A `v*` tag builds the AppImage and its .zsync in
-# ubuntu:22.04 (the glibc 2.35 baseline), smoke-tests them in Ubuntu 22.04,
-# Debian 12 and Fedora containers, builds and runs the Nix flake, and attaches
-# the AppImage, .zsync and SHA256SUMS to the GitHub Release for the tag. The release
+# tasks.md 9.4, design D11. A `v*` tag builds the AppImage, its .zsync and the
+# standalone binary in ubuntu:22.04 (the glibc 2.35 baseline), smoke-tests them in
+# Ubuntu 22.04, Debian 12 and Fedora containers, builds and runs the Nix flake, and
+# attaches the AppImage, .zsync, binary and SHA256SUMS to the GitHub Release for the tag. The release
 # is always published as a regular release marked as the latest one, never as a
 # prerelease or a draft.
 # A manual run (workflow_dispatch) is a dry run: every job but `release`.
@@ -35,6 +35,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       appimage: ${{ steps.version.outputs.appimage }}
+      binary: ${{ steps.version.outputs.binary }}
     steps:
       - uses: actions/checkout@v4
       - name: Derive the version and check it against Cargo.toml
@@ -52,8 +53,11 @@ jobs:
             version="$cargo_version"
             echo "::notice::not a tag ($GITHUB_REF_NAME): dry run for version $version, nothing is released"
           fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "appimage=quick-translate-$version-x86_64.AppImage" >> "$GITHUB_OUTPUT"
+          {
+            echo "version=$version"
+            echo "appimage=quick-translate-$version-x86_64.AppImage"
+            echo "binary=quick-translate-$version-x86_64"
+          } >> "$GITHUB_OUTPUT"
           echo "Version: $version"
 
   appimage:
@@ -77,9 +81,13 @@ jobs:
       - name: Check the outputs
         env:
           APPIMAGE: ${{ needs.version.outputs.appimage }}
+          BINARY: ${{ needs.version.outputs.binary }}
         run: |
+          # The standalone binary is the exact file inside the AppImage.
+          cp dist/AppDir/usr/bin/quick-translate "dist/$BINARY"
           test -x "dist/$APPIMAGE"
           test -s "dist/$APPIMAGE.zsync"
+          test -x "dist/$BINARY"
           ls -l dist/
       - uses: actions/upload-artifact@v4
         with:
@@ -87,6 +95,7 @@ jobs:
           path: |
             dist/${{ needs.version.outputs.appimage }}
             dist/${{ needs.version.outputs.appimage }}.zsync
+            dist/${{ needs.version.outputs.binary }}
           if-no-files-found: error
           retention-days: 7
 
@@ -117,6 +126,15 @@ jobs:
         run: >-
           bash packaging/appimage/smoke-test.sh --no-audit --require-zsync
           "dist/${{ needs.version.outputs.appimage }}" "${{ needs.version.outputs.version }}"
+      - name: Smoke test the standalone binary
+        env:
+          BINARY: ${{ needs.version.outputs.binary }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          chmod +x "dist/$BINARY"
+          out="$("dist/$BINARY" --version)"
+          echo "$out"
+          [ "$out" = "quick-translate $VERSION" ] || { echo "::error::expected 'quick-translate $VERSION'"; exit 1; }
       - name: Install binutils for the bundle audit
         run: ${{ matrix.install-binutils }}
       - name: Bundle audit
@@ -162,15 +180,17 @@ jobs:
         working-directory: dist
         env:
           APPIMAGE: ${{ needs.version.outputs.appimage }}
+          BINARY: ${{ needs.version.outputs.binary }}
         run: |
-          chmod +x "$APPIMAGE"
-          sha256sum "$APPIMAGE" "$APPIMAGE.zsync" > SHA256SUMS
+          chmod +x "$APPIMAGE" "$BINARY"
+          sha256sum "$APPIMAGE" "$APPIMAGE.zsync" "$BINARY" > SHA256SUMS
           cat SHA256SUMS
       - uses: softprops/action-gh-release@v2
         with:
           files: |
             dist/${{ needs.version.outputs.appimage }}
             dist/${{ needs.version.outputs.appimage }}.zsync
+            dist/${{ needs.version.outputs.binary }}
             dist/SHA256SUMS
           fail_on_unmatched_files: true
           generate_release_notes: true
