@@ -21,6 +21,9 @@ project and is not affiliated with DeepL.
   empty), and translates as you type.
 - Source and translation side by side, with source language auto-detect, a swap button and a
   settings button.
+- The three languages you picked most recently are listed at the top of each language menu.
+- With both DeepL and an AI model set up, a small switch in the header flips between them and
+  translates the text again.
 - **Esc** closes, **Ctrl+C** copies the translation and closes.
 - Backends: **DeepL** (default) or any **OpenAI-compatible** endpoint: OpenAI, OpenRouter,
   Ollama, LM Studio and others.

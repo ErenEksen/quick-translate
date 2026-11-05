@@ -19,6 +19,7 @@ use std::time::{Duration, Instant};
 use futures::stream;
 use iced::{Size, Theme};
 use quick_translate_backends::{Chunk, ChunkStream, Request, Translator};
+use quick_translate_core::BackendKind;
 use quick_translate_ui::popup::{BackendInfo, Languages, OpenOptions};
 use quick_translate_ui::shell::{self, CaptureMode, SessionId, ShellCommand, ShowRequest};
 use quick_translate_ui::window::{self, WindowShell};
@@ -144,17 +145,22 @@ fn request(n: u64, capture: CaptureMode, token: Option<String>) -> ShowRequest {
         activation_token: token,
         open: OpenOptions {
             target_lang: "DE".into(),
+            recent_targets: Vec::new(),
+            recent_sources: Vec::new(),
             languages: Languages::deepl(),
             backend: BackendInfo {
+                kind: BackendKind::Openai,
                 label: "Echo".into(),
                 configured: true,
                 reports_detected: false,
             },
+            alternate: None,
             splitter: 0.5,
             theme: Theme::Light,
         },
         size: Size::new(720.0, 320.0),
         translator: Arc::new(Echo),
+        alternate_translator: None,
         capture,
         notice: None,
         triggered_at: Instant::now(),

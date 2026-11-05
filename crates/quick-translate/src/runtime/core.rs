@@ -8,7 +8,7 @@ use std::time::Instant;
 use futures::future::BoxFuture;
 use iced::{Size, Theme};
 use quick_translate_backends::Translator;
-use quick_translate_core::Config;
+use quick_translate_core::{BackendKind, Config};
 use quick_translate_platform::selection::Captured;
 use quick_translate_ui::popup::{BackendInfo, Languages, OpenOptions};
 use quick_translate_ui::shell::{CaptureMode, SessionId, ShellCommand, ShellEvent, ShowRequest};
@@ -40,10 +40,51 @@ pub struct Backend {
     pub info: BackendInfo,
 }
 
+/// The active backend and, when DeepL and an AI endpoint are both set up, the other one for
+/// the popup's DeepL/AI switch.
+#[derive(Clone)]
+pub struct Backends {
+    pub active: Backend,
+    pub alternate: Option<Backend>,
+}
+
+impl Backends {
+    /// Only one backend: the popup shows no switch.
+    #[cfg(test)]
+    pub fn single(active: Backend) -> Self {
+        Self {
+            active,
+            alternate: None,
+        }
+    }
+
+    /// Makes `kind` the active backend. `false` when it is neither active nor the alternate.
+    pub fn switch_to(&mut self, kind: BackendKind) -> bool {
+        if self.active.info.kind == kind {
+            return true;
+        }
+        match self.alternate.take() {
+            Some(alternate) if alternate.info.kind == kind => {
+                self.alternate = Some(std::mem::replace(&mut self.active, alternate));
+                true
+            }
+            alternate => {
+                self.alternate = alternate;
+                false
+            }
+        }
+    }
+}
+
 /// A change the popup asks to persist in `config.toml`.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Persist {
+    /// The target and, with it, the most recent target.
     Target(String),
+    /// The most recent source language.
+    Source(String),
+    /// The backend chosen with the popup's switch.
+    Backend(BackendKind),
     Splitter(f32),
     Size(Size),
 }
@@ -52,7 +93,7 @@ pub enum Persist {
 pub struct Popups<U: Ui> {
     ui: U,
     capture: Option<Arc<dyn Capture>>,
-    backend: Backend,
+    backends: Backends,
     config: Config,
     theme: Theme,
     notice: Option<String>,
@@ -64,14 +105,14 @@ impl<U: Ui> Popups<U> {
     pub fn new(
         ui: U,
         capture: Option<Arc<dyn Capture>>,
-        backend: Backend,
+        backends: Backends,
         config: Config,
         theme: Theme,
     ) -> Self {
         Self {
             ui,
             capture,
-            backend,
+            backends,
             config,
             theme,
             notice: None,
@@ -114,7 +155,12 @@ impl<U: Ui> Popups<U> {
             activation_token,
             open: self.open_options(),
             size: Size::new(self.config.popup.width, self.config.popup.height),
-            translator: self.backend.translator.clone(),
+            translator: self.backends.active.translator.clone(),
+            alternate_translator: self
+                .backends
+                .alternate
+                .as_ref()
+                .map(|alternate| alternate.translator.clone()),
             capture,
             notice: self.notice.clone(),
             triggered_at,
@@ -133,8 +179,8 @@ impl<U: Ui> Popups<U> {
                 });
             });
         }
-        if self.backend.info.configured {
-            let translator = self.backend.translator.clone();
+        if self.backends.active.info.configured {
+            let translator = self.backends.active.translator.clone();
             tokio::spawn(async move { translator.warm_up().await });
         }
     }
@@ -156,8 +202,22 @@ impl<U: Ui> Popups<U> {
                 None
             }
             ShellEvent::PersistTarget(code) => {
-                self.config.target_lang = Some(code.clone());
+                self.config.remember_target(&code);
                 Some(Persist::Target(code))
+            }
+            ShellEvent::RememberSource(code) => {
+                self.config.remember_source(&code);
+                Some(Persist::Source(code))
+            }
+            ShellEvent::BackendSwitched(kind) => {
+                if !self.backends.switch_to(kind) {
+                    // The backends were rebuilt meanwhile (settings changed) without this one.
+                    tracing::debug!(backend = ?kind, "ignoring a switch to a backend that is gone");
+                    return None;
+                }
+                tracing::debug!(backend = ?kind, "backend switched from the popup");
+                self.config.backend = kind;
+                Some(Persist::Backend(kind))
             }
             ShellEvent::PersistSplitter(ratio) => {
                 self.config.popup.splitter = ratio;
@@ -187,8 +247,8 @@ impl<U: Ui> Popups<U> {
         &self.config
     }
 
-    pub fn set_backend(&mut self, backend: Backend) {
-        self.backend = backend;
+    pub fn set_backends(&mut self, backends: Backends) {
+        self.backends = backends;
     }
 
     /// A notice shown in every popup, e.g. a malformed config file.
@@ -205,12 +265,23 @@ impl<U: Ui> Popups<U> {
     fn open_options(&self) -> OpenOptions {
         OpenOptions {
             target_lang: self.config.effective_target_lang().to_owned(),
+            recent_targets: to_owned(self.config.recent_targets()),
+            recent_sources: to_owned(self.config.recent_sources()),
             languages: Languages::deepl(),
-            backend: self.backend.info.clone(),
+            backend: self.backends.active.info.clone(),
+            alternate: self
+                .backends
+                .alternate
+                .as_ref()
+                .map(|alternate| alternate.info.clone()),
             splitter: self.config.popup.splitter,
             theme: self.theme.clone(),
         }
     }
+}
+
+fn to_owned(codes: Vec<&'static str>) -> Vec<String> {
+    codes.into_iter().map(str::to_owned).collect()
 }
 
 #[cfg(test)]
@@ -321,6 +392,7 @@ mod tests {
         let backend = Backend {
             translator: translator.clone(),
             info: BackendInfo {
+                kind: BackendKind::Deepl,
                 label: "DeepL".into(),
                 configured: true,
                 reports_detected: true,
@@ -329,11 +401,48 @@ mod tests {
         let popups = Popups::new(
             ui.clone(),
             capture,
-            backend,
+            Backends::single(backend),
             Config::default(),
             Theme::Light,
         );
         (popups, ui, translator)
+    }
+
+    fn backend(kind: BackendKind, translator: Arc<dyn Translator>) -> Backend {
+        Backend {
+            translator,
+            info: BackendInfo {
+                kind,
+                label: match kind {
+                    BackendKind::Deepl => "DeepL".into(),
+                    BackendKind::Openai => "AI: test".into(),
+                },
+                configured: true,
+                reports_detected: kind == BackendKind::Deepl,
+            },
+        }
+    }
+
+    /// DeepL active with AI as the alternate, each with its own translator.
+    fn switchable() -> (
+        Popups<FakeUi>,
+        FakeUi,
+        Arc<HangingTranslator>,
+        Arc<HangingTranslator>,
+    ) {
+        let ui = FakeUi::default();
+        let deepl = Arc::new(HangingTranslator::default());
+        let ai = Arc::new(HangingTranslator::default());
+        let backends = Backends {
+            active: backend(BackendKind::Deepl, deepl.clone()),
+            alternate: Some(backend(BackendKind::Openai, ai.clone())),
+        };
+        let popups = Popups::new(ui.clone(), None, backends, Config::default(), Theme::Light);
+        (popups, ui, deepl, ai)
+    }
+
+    fn same(a: &Arc<dyn Translator>, b: &Arc<HangingTranslator>) -> bool {
+        std::ptr::addr_eq(Arc::as_ptr(a), Arc::as_ptr(b))
     }
 
     #[tokio::test]
@@ -430,6 +539,129 @@ mod tests {
         assert_eq!(request.open.target_lang, "DE");
         assert_eq!(request.size, Size::new(900.0, 400.0));
         assert!((request.open.splitter - 0.3).abs() < f32::EPSILON);
+    }
+
+    #[tokio::test]
+    async fn without_a_second_backend_the_popup_gets_no_switch() {
+        let (mut popups, ui, _) = popups(None);
+        popups.toggle(None, Instant::now());
+        let request = ui.last_show().expect("show");
+        assert!(request.open.alternate.is_none());
+        assert!(request.alternate_translator.is_none());
+        // A switch event without an alternate changes nothing and persists nothing.
+        assert_eq!(
+            popups.shell_event(ShellEvent::BackendSwitched(BackendKind::Openai)),
+            None
+        );
+        assert_eq!(popups.config().backend, BackendKind::Deepl);
+    }
+
+    #[tokio::test]
+    async fn both_backends_reach_the_popup_and_the_switch_sticks() {
+        let (mut popups, ui, deepl, ai) = switchable();
+        popups.toggle(None, Instant::now());
+        let request = ui.last_show().expect("show");
+        assert_eq!(request.open.backend.kind, BackendKind::Deepl);
+        assert_eq!(
+            request.open.alternate.as_ref().map(|b| b.kind),
+            Some(BackendKind::Openai)
+        );
+        assert!(same(&request.translator, &deepl));
+        assert!(same(
+            request.alternate_translator.as_ref().expect("alternate"),
+            &ai
+        ));
+
+        assert_eq!(
+            popups.shell_event(ShellEvent::BackendSwitched(BackendKind::Openai)),
+            Some(Persist::Backend(BackendKind::Openai))
+        );
+        assert_eq!(popups.config().backend, BackendKind::Openai);
+        popups.hide();
+        popups.toggle(None, Instant::now());
+        let request = ui.last_show().expect("show");
+        assert_eq!(request.open.backend.kind, BackendKind::Openai);
+        assert_eq!(
+            request.open.alternate.as_ref().map(|b| b.kind),
+            Some(BackendKind::Deepl)
+        );
+        assert!(same(&request.translator, &ai));
+        tokio::task::yield_now().await;
+        assert_eq!(
+            ai.warm_ups.load(Ordering::SeqCst),
+            1,
+            "warms the new backend"
+        );
+
+        // Switching back, and a repeated event for the active backend, keep things consistent.
+        assert_eq!(
+            popups.shell_event(ShellEvent::BackendSwitched(BackendKind::Deepl)),
+            Some(Persist::Backend(BackendKind::Deepl))
+        );
+        assert_eq!(
+            popups.shell_event(ShellEvent::BackendSwitched(BackendKind::Deepl)),
+            Some(Persist::Backend(BackendKind::Deepl))
+        );
+        assert_eq!(popups.config().backend, BackendKind::Deepl);
+    }
+
+    #[tokio::test]
+    async fn a_stale_switch_after_a_rebuild_is_ignored() {
+        let (mut popups, _ui, _deepl, _ai) = switchable();
+        // Settings removed the AI key meanwhile: only DeepL is left.
+        popups.set_backends(Backends::single(backend(
+            BackendKind::Deepl,
+            Arc::new(HangingTranslator::default()),
+        )));
+        assert_eq!(
+            popups.shell_event(ShellEvent::BackendSwitched(BackendKind::Openai)),
+            None
+        );
+        assert_eq!(popups.config().backend, BackendKind::Deepl);
+    }
+
+    #[tokio::test]
+    async fn picked_languages_become_recent_for_the_next_popup() {
+        let (mut popups, ui, _) = popups(None);
+        for code in ["DE", "FR", "TR", "FR"] {
+            assert_eq!(
+                popups.shell_event(ShellEvent::PersistTarget(code.into())),
+                Some(Persist::Target(code.into()))
+            );
+        }
+        assert_eq!(
+            popups.shell_event(ShellEvent::RememberSource("EN".into())),
+            Some(Persist::Source("EN".into()))
+        );
+        popups.toggle(None, Instant::now());
+        let request = ui.last_show().expect("show");
+        assert_eq!(request.open.target_lang, "FR");
+        assert_eq!(request.open.recent_targets, ["FR", "TR", "DE"]);
+        assert_eq!(request.open.recent_sources, ["EN"]);
+    }
+
+    #[test]
+    fn backends_switch_to() {
+        let deepl = backend(BackendKind::Deepl, Arc::new(HangingTranslator::default()));
+        let ai = backend(BackendKind::Openai, Arc::new(HangingTranslator::default()));
+        let mut single = Backends::single(deepl.clone());
+        assert!(single.switch_to(BackendKind::Deepl));
+        assert!(!single.switch_to(BackendKind::Openai));
+        assert_eq!(single.active.info.kind, BackendKind::Deepl);
+        assert!(single.alternate.is_none());
+
+        let mut both = Backends {
+            active: deepl,
+            alternate: Some(ai),
+        };
+        assert!(both.switch_to(BackendKind::Openai));
+        assert_eq!(both.active.info.kind, BackendKind::Openai);
+        assert_eq!(
+            both.alternate.as_ref().map(|b| b.info.kind),
+            Some(BackendKind::Deepl)
+        );
+        assert!(both.switch_to(BackendKind::Openai));
+        assert_eq!(both.active.info.kind, BackendKind::Openai);
     }
 
     #[tokio::test]

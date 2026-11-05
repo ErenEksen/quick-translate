@@ -29,6 +29,8 @@ pub struct PopupHost {
     popup: Option<Popup>,
     session: Option<SessionId>,
     translator: Option<Arc<dyn Translator>>,
+    /// The other backend's translator while the popup offers the DeepL/AI switch.
+    alternate_translator: Option<Arc<dyn Translator>>,
     cancels: HashMap<TranslationId, CancellationToken>,
     theme: Theme,
     triggered_at: Option<Instant>,
@@ -42,6 +44,7 @@ impl PopupHost {
             popup: None,
             session: None,
             translator: None,
+            alternate_translator: None,
             cancels: HashMap::new(),
             theme,
             triggered_at: None,
@@ -87,6 +90,12 @@ impl PopupHost {
         }
         self.session = Some(request.session);
         self.translator = Some(request.translator.clone());
+        // Without the alternate's info the popup shows no switch, so a lone translator is unused.
+        self.alternate_translator = request
+            .open
+            .alternate
+            .as_ref()
+            .and(request.alternate_translator.clone());
         self.triggered_at = Some(request.triggered_at);
         self.first_frame_logged = false;
         let (task, _) = self.run(effects);
@@ -221,6 +230,18 @@ impl PopupHost {
                 Effect::Close => actions.push(HostAction::Close),
                 Effect::OpenSettings => self.shell.send(ShellEvent::OpenSettings),
                 Effect::PersistTarget(code) => self.shell.send(ShellEvent::PersistTarget(code)),
+                Effect::RememberSource(code) => self.shell.send(ShellEvent::RememberSource(code)),
+                Effect::SwitchBackend(kind) => {
+                    // Runs before the StartTranslation that follows it, so that request already
+                    // goes to the new backend.
+                    let Some(next) = self.alternate_translator.take() else {
+                        tracing::warn!("backend switch without a second translator");
+                        continue;
+                    };
+                    self.alternate_translator = self.translator.replace(next);
+                    tracing::debug!(backend = ?kind, "popup switched backend");
+                    self.shell.send(ShellEvent::BackendSwitched(kind));
+                }
                 Effect::PersistSplitter(ratio) => {
                     self.shell.send(ShellEvent::PersistSplitter(ratio));
                 }
@@ -238,6 +259,7 @@ mod tests {
     use crate::shell::{CaptureMode, channel};
     use iced::Size;
     use quick_translate_backends::{ChunkStream, Request};
+    use quick_translate_core::BackendKind;
     use std::pin::Pin;
 
     struct Never;
@@ -259,17 +281,22 @@ mod tests {
             activation_token: None,
             open: OpenOptions {
                 target_lang: "DE".into(),
+                recent_targets: Vec::new(),
+                recent_sources: Vec::new(),
                 languages: Languages::deepl(),
                 backend: BackendInfo {
+                    kind: BackendKind::Deepl,
                     label: "DeepL".into(),
                     configured: true,
                     reports_detected: true,
                 },
+                alternate: None,
                 splitter: 0.5,
                 theme: Theme::Light,
             },
             size: Size::new(720.0, 320.0),
             translator: Arc::new(Never),
+            alternate_translator: None,
             capture: CaptureMode::Daemon,
             notice: Some("config.toml is malformed".into()),
             triggered_at: Instant::now(),
@@ -311,5 +338,104 @@ mod tests {
         );
         assert!(daemon.events.try_recv().is_err());
         assert!(!host.is_open());
+    }
+
+    fn switchable(
+        session: u64,
+        deepl: Arc<dyn Translator>,
+        ai: Arc<dyn Translator>,
+    ) -> ShowRequest {
+        let mut request = request(session);
+        request.translator = deepl;
+        request.alternate_translator = Some(ai);
+        request.open.alternate = Some(BackendInfo {
+            kind: BackendKind::Openai,
+            label: "AI: test".into(),
+            configured: true,
+            reports_detected: false,
+        });
+        request
+    }
+
+    fn is(a: Option<&Arc<dyn Translator>>, b: &Arc<dyn Translator>) -> bool {
+        a.is_some_and(|a| Arc::ptr_eq(a, b))
+    }
+
+    fn events(daemon: &mut crate::shell::DaemonEnd) -> Vec<ShellEvent> {
+        std::iter::from_fn(|| daemon.events.try_recv().ok()).collect()
+    }
+
+    #[test]
+    fn switch_swaps_translators_and_tells_the_daemon() {
+        let (mut daemon, shell) = channel();
+        let mut host = PopupHost::new(shell, Theme::Light);
+        let deepl: Arc<dyn Translator> = Arc::new(Never);
+        let ai: Arc<dyn Translator> = Arc::new(Never);
+        let _ = host.open(&switchable(3, deepl.clone(), ai.clone()));
+        let _ = host.captured(SessionId(3), "Hallo".into(), false);
+        let first = host.cancels.values().next().cloned().expect("token");
+
+        let (_, actions) = host.update(Message::BackendToggled);
+        assert!(actions.is_empty());
+        assert!(
+            first.is_cancelled(),
+            "the old backend's request is cancelled"
+        );
+        assert!(is(host.translator.as_ref(), &ai));
+        assert!(is(host.alternate_translator.as_ref(), &deepl));
+        assert_eq!(host.cancels.len(), 1, "a new request runs");
+        assert_eq!(
+            events(&mut daemon),
+            [ShellEvent::BackendSwitched(BackendKind::Openai)]
+        );
+
+        let _ = host.update(Message::BackendToggled);
+        assert!(is(host.translator.as_ref(), &deepl));
+        assert_eq!(
+            events(&mut daemon),
+            [ShellEvent::BackendSwitched(BackendKind::Deepl)]
+        );
+    }
+
+    #[test]
+    fn a_new_session_uses_the_translators_it_brings() {
+        let (_daemon, shell) = channel();
+        let mut host = PopupHost::new(shell, Theme::Light);
+        let deepl: Arc<dyn Translator> = Arc::new(Never);
+        let ai: Arc<dyn Translator> = Arc::new(Never);
+        let _ = host.open(&switchable(1, deepl.clone(), ai.clone()));
+        let _ = host.update(Message::BackendToggled);
+        assert!(is(host.translator.as_ref(), &ai));
+
+        // The daemon now sends AI as the active backend, DeepL as the alternate.
+        let mut next = switchable(2, ai.clone(), deepl.clone());
+        if let Some(alternate) = &mut next.open.alternate {
+            alternate.kind = BackendKind::Deepl;
+        }
+        next.open.backend.kind = BackendKind::Openai;
+        let _ = host.open(&next);
+        assert!(is(host.translator.as_ref(), &ai));
+        assert!(is(host.alternate_translator.as_ref(), &deepl));
+
+        // Without the alternate's info there is no switch and no second translator.
+        let mut lone = request(3);
+        lone.alternate_translator = Some(ai.clone());
+        let _ = host.open(&lone);
+        assert!(host.alternate_translator.is_none());
+        let (_, actions) = host.update(Message::BackendToggled);
+        assert!(actions.is_empty());
+    }
+
+    #[test]
+    fn language_picks_reach_the_daemon() {
+        let (mut daemon, shell) = channel();
+        let mut host = PopupHost::new(shell, Theme::Light);
+        let _ = host.open(&request(1));
+        let _ = host.captured(SessionId(1), "Hallo".into(), false);
+        let _ = host.update(Message::SourceLanguageSelected(Some("DE")));
+        let _ = host.update(Message::TargetLanguageSelected("TR"));
+        let events = events(&mut daemon);
+        assert!(events.contains(&ShellEvent::RememberSource("DE".into())));
+        assert!(events.contains(&ShellEvent::PersistTarget("TR".into())));
     }
 }

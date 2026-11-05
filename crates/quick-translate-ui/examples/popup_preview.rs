@@ -2,6 +2,8 @@
 //!
 //! `QT_PREVIEW_SECS` (default 5, `0` keeps it open) closes the window automatically;
 //! `QT_PREVIEW_DARK=1` uses the dark theme; `QT_PREVIEW_UNCONFIGURED=1` shows the settings action.
+//! `QT_PREVIEW_SWITCH=1` offers the DeepL/AI switch; `QT_PREVIEW_RECENT=1` fills the recent
+//! languages; `QT_PREVIEW_SIZE=WxH` sets the window size (default 720x320).
 //! `QT_PREVIEW_TRACE=1` prints message kinds, view rebuilds and redraw events (never text).
 
 use std::time::Duration;
@@ -9,6 +11,7 @@ use std::time::Duration;
 use futures::stream;
 use iced::{Element, Subscription, Task, Theme};
 use quick_translate_backends::Chunk;
+use quick_translate_core::BackendKind;
 use quick_translate_ui::popup::{
     self, BackendInfo, Effect, Languages, Message, OpenOptions, Popup, TranslationId,
 };
@@ -28,14 +31,30 @@ fn env_flag(name: &str) -> bool {
 }
 
 fn boot() -> (Preview, Task<Msg>) {
+    let recent = |codes: &[&str]| -> Vec<String> {
+        if env_flag("QT_PREVIEW_RECENT") {
+            codes.iter().map(|c| (*c).to_owned()).collect()
+        } else {
+            Vec::new()
+        }
+    };
     let popup = Popup::new(OpenOptions {
         target_lang: "TR".into(),
+        recent_targets: recent(&["TR", "DE", "EN-US"]),
+        recent_sources: recent(&["EN", "FR"]),
         languages: Languages::deepl(),
         backend: BackendInfo {
+            kind: BackendKind::Deepl,
             label: "DeepL".into(),
             configured: !env_flag("QT_PREVIEW_UNCONFIGURED"),
             reports_detected: true,
         },
+        alternate: env_flag("QT_PREVIEW_SWITCH").then(|| BackendInfo {
+            kind: BackendKind::Openai,
+            label: "AI: gpt-4o-mini".into(),
+            configured: true,
+            reports_detected: false,
+        }),
         splitter: 0.5,
         theme: if env_flag("QT_PREVIEW_DARK") {
             Theme::Dark
@@ -107,6 +126,10 @@ fn update(state: &mut Preview, msg: Msg) -> Task<Msg> {
             Err(Effect::StartTranslation { id, .. }) => fake_translation(id),
             Err(Effect::CopyToClipboard(text)) => iced::clipboard::write(text),
             Err(Effect::Close) => iced::exit(),
+            Err(Effect::SwitchBackend(kind)) => {
+                eprintln!("preview: switched to {kind:?}");
+                Task::none()
+            }
             Err(other) => {
                 eprintln!(
                     "preview: unhandled effect {:?}",
@@ -139,11 +162,21 @@ fn subscription(_state: &Preview) -> Subscription<Msg> {
     Subscription::batch([popup::subscription().map(Msg::Popup), trace])
 }
 
+fn window_size() -> (f32, f32) {
+    std::env::var("QT_PREVIEW_SIZE")
+        .ok()
+        .and_then(|size| {
+            let (w, h) = size.split_once('x')?;
+            Some((w.parse().ok()?, h.parse().ok()?))
+        })
+        .unwrap_or((720.0, 320.0))
+}
+
 fn main() -> iced::Result {
     iced::application(boot, update, view)
         .title("Quick Translate popup preview")
         .subscription(subscription)
         .theme(|state: &Preview| state.popup.theme())
-        .window_size((720.0, 320.0))
+        .window_size(window_size())
         .run()
 }

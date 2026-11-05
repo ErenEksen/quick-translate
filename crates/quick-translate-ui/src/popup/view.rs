@@ -2,35 +2,79 @@
 
 use std::fmt;
 
-use iced::widget::{button, column, container, pick_list, row, space, text, text_editor};
-use iced::{Background, Border, Center, Color, Element, Fill, Theme};
-use quick_translate_core::{Language, MAX_SOURCE_CHARS};
+use iced::widget::{button, column, container, pick_list, row, text, text_editor, toggler};
+use iced::{Background, Border, Center, Color, Element, Fill, Padding, Theme};
+use quick_translate_core::{BackendKind, Language, MAX_SOURCE_CHARS};
 
+use super::header::Header;
 use super::keys::{source_binding, translation_binding};
 use super::{Control, Message, Pane, Popup, Split, TranslationStatus, language_name};
 
 const HEADER_TEXT: u32 = 14;
+const HEADER_SPACING: f32 = 6.0;
 const SMALL_TEXT: u32 = 12;
+/// Height of the DeepL/AI switch (logical px); it is twice as wide.
+const SWITCH_SIZE: f32 = 12.0;
 
+/// Row between the recently used languages and the full list. Short, so it never widens the
+/// selector, which sizes itself to its longest entry.
+pub(super) const SEPARATOR: &str = "────────";
+
+/// One row of the source selector: auto-detect, then the recent languages, a separator and
+/// every language. A recent language appears twice; the copies differ in `recent` so each
+/// row is distinct for the selector.
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct SourceOption {
-    code: Option<&'static str>,
-    label: String,
+pub(super) enum SourceOption {
+    Auto(String),
+    Language { language: Language, recent: bool },
+    Separator,
 }
 
 impl fmt::Display for SourceOption {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.label)
+        match self {
+            Self::Auto(label) => f.write_str(label),
+            Self::Language { language, .. } => f.write_str(language.name),
+            Self::Separator => f.write_str(SEPARATOR),
+        }
     }
 }
 
+/// One row of the target selector: the recent languages, a separator, then every language.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct TargetOption(Language);
+pub(super) enum TargetOption {
+    Language { language: Language, recent: bool },
+    Separator,
+}
 
 impl fmt::Display for TargetOption {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.0.name)
+        match self {
+            Self::Language { language, .. } => f.write_str(language.name),
+            Self::Separator => f.write_str(SEPARATOR),
+        }
     }
+}
+
+/// `recent` codes resolved in `list`, then a separator, then all of `list`. No separator
+/// without recent languages.
+fn with_recent<T>(
+    list: &'static [Language],
+    recent: &[&'static str],
+    option: impl Fn(Language, bool) -> T,
+    separator: T,
+) -> Vec<T> {
+    let recent: Vec<T> = recent
+        .iter()
+        .filter_map(|code| list.iter().find(|l| l.code == *code))
+        .map(|l| option(*l, true))
+        .collect();
+    let has_recent = !recent.is_empty();
+    recent
+        .into_iter()
+        .chain(has_recent.then_some(separator))
+        .chain(list.iter().map(|l| option(*l, false)))
+        .collect()
 }
 
 impl Popup {
@@ -60,41 +104,63 @@ impl Popup {
         }
     }
 
-    fn header(&self) -> Element<'_, Message> {
-        let auto = SourceOption {
-            code: None,
-            label: self.auto_label(),
-        };
-        let sources: Vec<SourceOption> = std::iter::once(auto.clone())
-            .chain(self.languages.sources.iter().map(|l| SourceOption {
-                code: Some(l.code),
-                label: l.name.to_owned(),
-            }))
+    /// Rows of the source selector and the row that is selected.
+    pub(super) fn source_options(&self) -> (Vec<SourceOption>, SourceOption) {
+        let auto = SourceOption::Auto(self.auto_label());
+        let options: Vec<SourceOption> = std::iter::once(auto.clone())
+            .chain(with_recent(
+                self.languages.sources,
+                &self.recent_sources,
+                |language, recent| SourceOption::Language { language, recent },
+                SourceOption::Separator,
+            ))
             .collect();
-        let selected_source = sources
-            .iter()
-            .find(|o| o.code == self.source_lang)
+        // Prefer the copy among the recent rows: the open menu then highlights a row that is
+        // visible at the top instead of one far down the list.
+        let selected = self
+            .source_lang
+            .and_then(|code| {
+                options.iter().find(|o| {
+                    matches!(o, SourceOption::Language { language, .. } if language.code == code)
+                })
+            })
             .cloned()
             .unwrap_or(auto);
-        let source_picker = pick_list(sources, Some(selected_source), |o: SourceOption| {
-            Message::SourceLanguageSelected(o.code)
+        (options, selected)
+    }
+
+    /// Rows of the target selector and the row that is selected.
+    pub(super) fn target_options(&self) -> (Vec<TargetOption>, Option<TargetOption>) {
+        let options = with_recent(
+            self.languages.targets,
+            &self.recent_targets,
+            |language, recent| TargetOption::Language { language, recent },
+            TargetOption::Separator,
+        );
+        let selected = options.iter().copied().find(|o| {
+            matches!(o, TargetOption::Language { language, .. } if language.code == self.target_lang)
+        });
+        (options, selected)
+    }
+
+    fn header(&self) -> Element<'_, Message> {
+        let (sources, selected_source) = self.source_options();
+        let source_picker = pick_list(sources, Some(selected_source), |o: SourceOption| match o {
+            SourceOption::Auto(_) => Message::SourceLanguageSelected(None),
+            SourceOption::Language { language, .. } => {
+                Message::SourceLanguageSelected(Some(language.code))
+            }
+            SourceOption::Separator => Message::SelectorClosed(Control::SourceLanguage),
         })
         .text_size(HEADER_TEXT)
         .on_open(Message::SelectorOpened(Control::SourceLanguage));
 
-        let targets: Vec<TargetOption> = self
-            .languages
-            .targets
-            .iter()
-            .copied()
-            .map(TargetOption)
-            .collect();
-        let selected_target = targets
-            .iter()
-            .copied()
-            .find(|o| o.0.code == self.target_lang);
-        let target_picker = pick_list(targets, selected_target, |o: TargetOption| {
-            Message::TargetLanguageSelected(o.0.code)
+        let (targets, selected_target) = self.target_options();
+        let target_picker = pick_list(targets, selected_target, |o: TargetOption| match o {
+            TargetOption::Language { language, .. } => {
+                Message::TargetLanguageSelected(language.code)
+            }
+            TargetOption::Separator => Message::SelectorClosed(Control::TargetLanguage),
         })
         .text_size(HEADER_TEXT)
         .on_open(Message::SelectorOpened(Control::TargetLanguage));
@@ -117,23 +183,46 @@ impl Popup {
         let indicator = text(if loading { "Translating…" } else { "" })
             .size(SMALL_TEXT)
             .style(text::secondary);
-        let backend = text(self.backend.label.as_str())
-            .size(SMALL_TEXT)
-            .style(text::secondary);
+        // With both backends set up, the backend name becomes the label of a small switch
+        // (on = AI); otherwise it stays plain text.
+        let backend: Element<'_, Message> = if self.alternate.is_some() {
+            let switch = toggler(self.backend.kind == BackendKind::Openai)
+                .label(self.backend.label.as_str())
+                .size(SWITCH_SIZE)
+                .text_size(SMALL_TEXT)
+                .spacing(4)
+                .on_toggle(|_| Message::BackendToggled)
+                .style(switch_style);
+            // A little room after the label so the focus ring does not touch it.
+            let switch = container(switch).padding(Padding::ZERO.right(4));
+            self.ring(Control::Backend, switch)
+        } else {
+            text(self.backend.label.as_str())
+                .size(SMALL_TEXT)
+                .style(text::secondary)
+                .into()
+        };
 
-        row![
+        // The language controls wrap when even they do not fit; the right group moves to its
+        // own line before it would be cut off, and the indicator only shows where it has room
+        // (see `Header`).
+        let languages = row![
             self.ring(Control::SourceLanguage, source_picker),
             self.ring(Control::Swap, swap),
             self.ring(Control::TargetLanguage, target_picker),
-            space::horizontal(),
-            indicator,
+        ]
+        .spacing(HEADER_SPACING)
+        .align_y(Center)
+        .wrap()
+        .vertical_spacing(HEADER_SPACING);
+        let actions = row![
             backend,
             self.ring(Control::Copy, copy),
             self.ring(Control::HeaderSettings, settings),
         ]
-        .spacing(6)
-        .align_y(Center)
-        .into()
+        .spacing(HEADER_SPACING)
+        .align_y(Center);
+        Header::new(languages, actions, indicator, HEADER_SPACING).into()
     }
 
     fn panes(&self) -> Element<'_, Message> {
@@ -236,6 +325,14 @@ fn focus_ring(theme: &Theme, focused: bool) -> container::Style {
             radius: 6.0.into(),
         },
         ..container::Style::default()
+    }
+}
+
+/// The default switch with the secondary text color the plain backend label uses.
+fn switch_style(theme: &Theme, status: toggler::Status) -> toggler::Style {
+    toggler::Style {
+        text_color: text::secondary(theme).color,
+        ..toggler::default(theme, status)
     }
 }
 

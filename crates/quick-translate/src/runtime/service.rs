@@ -23,7 +23,7 @@ use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 
 use super::backend::{self, secret_id};
-use super::core::{Backend, Popups};
+use super::core::{Backends, Popups};
 use super::persist::Change;
 use crate::instance::Instance;
 use crate::settings::{self, Opened, SettingsWindow};
@@ -32,8 +32,8 @@ type ShellUi = mpsc::UnboundedSender<ShellCommand>;
 
 /// Messages from tasks the service spawned.
 enum Internal {
-    /// A rebuilt backend; only the newest generation is applied.
-    Backend(u64, Backend),
+    /// Rebuilt backends; only the newest generation is applied.
+    Backend(u64, Backends),
 }
 
 pub struct Service {
@@ -144,12 +144,17 @@ impl Service {
                     tracing::debug!(?scheme, "color scheme changed");
                     self.popups.set_theme(quick_translate_ui::theme::for_scheme(scheme));
                 }
-                Some(Internal::Backend(generation, backend)) = internal.recv() => {
+                Some(Internal::Backend(generation, backends)) = internal.recv() => {
                     if generation != state.backend_generation {
                         continue;
                     }
-                    tracing::debug!(backend = backend.info.label, configured = backend.info.configured, "backend ready");
-                    self.popups.set_backend(backend);
+                    tracing::debug!(
+                        backend = backends.active.info.label,
+                        configured = backends.active.info.configured,
+                        switch = backends.alternate.is_some(),
+                        "backend ready"
+                    );
+                    self.popups.set_backends(backends);
                 }
                 result = async { shortcut.as_mut().expect("guarded").await }, if shortcut.is_some() => {
                     shortcut = None;

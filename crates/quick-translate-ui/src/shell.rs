@@ -10,6 +10,7 @@ use std::time::Instant;
 use futures::stream;
 use iced::{Size, Subscription, Theme};
 use quick_translate_backends::Translator;
+use quick_translate_core::BackendKind;
 use tokio::sync::mpsc;
 
 use crate::popup::OpenOptions;
@@ -43,6 +44,8 @@ pub struct ShowRequest {
     /// Persisted popup size (logical px).
     pub size: Size,
     pub translator: Arc<dyn Translator>,
+    /// The translator for `open.alternate`, used after the user flips the DeepL/AI switch.
+    pub alternate_translator: Option<Arc<dyn Translator>>,
     pub capture: CaptureMode,
     /// A notice shown in the popup, e.g. a malformed config file.
     pub notice: Option<String>,
@@ -56,6 +59,7 @@ impl std::fmt::Debug for ShowRequest {
             .field("session", &self.session)
             .field("activation_token", &self.activation_token.is_some())
             .field("size", &self.size)
+            .field("alternate", &self.alternate_translator.is_some())
             .field("capture", &self.capture)
             .finish_non_exhaustive()
     }
@@ -91,7 +95,12 @@ pub enum ShellEvent {
     Closed {
         session: SessionId,
     },
+    /// The user picked this target; it is also the most recent target.
     PersistTarget(String),
+    /// The user picked this source language; remember it as the most recent source.
+    RememberSource(String),
+    /// The user flipped the DeepL/AI switch: translate with this backend from now on.
+    BackendSwitched(BackendKind),
     PersistSplitter(f32),
     PersistSize(Size),
     OpenSettings,

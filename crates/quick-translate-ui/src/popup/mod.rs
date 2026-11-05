@@ -6,6 +6,7 @@
 //! focus) can be turned into tasks with [`Effect::into_task`]; the rest (translation
 //! requests, clipboard, closing, persistence, settings) are the shell's job.
 
+mod header;
 mod keys;
 mod split;
 mod task;
@@ -20,6 +21,8 @@ use std::time::Duration;
 use iced::Theme;
 use iced::widget::text_editor::{Action, Content, Edit, Motion};
 use quick_translate_backends::{Chunk, Error, Request};
+use quick_translate_core::BackendKind;
+use quick_translate_core::config::MAX_RECENT_LANGUAGES;
 use quick_translate_core::language::{self, Language};
 
 pub use keys::{Key, subscription};
@@ -39,9 +42,11 @@ pub const SPLITTER_KEY_STEP: f32 = 0.05;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct TranslationId(pub u64);
 
-/// What the popup needs to know about the active backend.
+/// What the popup needs to know about a backend.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BackendInfo {
+    /// Which backend this is; the popup reports it when the user switches backends.
+    pub kind: BackendKind,
     /// Indicator text, e.g. `DeepL` or `AI: gpt-4o-mini`.
     pub label: String,
     /// Credentials or endpoint are present. When false the translation pane offers to open settings.
@@ -78,8 +83,15 @@ impl Default for Languages {
 pub struct OpenOptions {
     /// Remembered or locale-derived target code (`EN-US`, `TR`, ...).
     pub target_lang: String,
+    /// Recently picked targets, newest first. Unknown codes are ignored.
+    pub recent_targets: Vec<String>,
+    /// Recently picked sources, newest first. Unknown codes are ignored.
+    pub recent_sources: Vec<String>,
     pub languages: Languages,
     pub backend: BackendInfo,
+    /// The other configured backend, when both DeepL and an AI endpoint are set up. The popup
+    /// then shows a switch between the two.
+    pub alternate: Option<BackendInfo>,
     /// Persisted splitter ratio (fraction of the width given to the source pane).
     pub splitter: f32,
     pub theme: Theme,
@@ -91,6 +103,8 @@ pub enum Control {
     SourceLanguage,
     Swap,
     TargetLanguage,
+    /// DeepL/AI switch, shown when both backends are set up.
+    Backend,
     Copy,
     /// Gear icon in the header.
     HeaderSettings,
@@ -102,10 +116,11 @@ pub enum Control {
 }
 
 impl Control {
-    const ORDER: [Self; 9] = [
+    const ORDER: [Self; 10] = [
         Self::SourceLanguage,
         Self::Swap,
         Self::TargetLanguage,
+        Self::Backend,
         Self::Copy,
         Self::HeaderSettings,
         Self::SourcePane,
@@ -188,6 +203,10 @@ pub enum Message {
     TargetLanguageSelected(&'static str),
     /// A language menu was opened with the mouse; keyboard focus follows it.
     SelectorOpened(Control),
+    /// A language menu closed without a new choice (the separator row was picked).
+    SelectorClosed(Control),
+    /// The DeepL/AI switch was flipped.
+    BackendToggled,
     SwapPressed,
     CopyPressed,
     OpenSettingsPressed,
@@ -214,8 +233,13 @@ pub enum Effect {
     Close,
     /// Launch the settings app.
     OpenSettings,
-    /// Remember the target language in the config.
+    /// Remember the target language in the config (and as the most recent target).
     PersistTarget(String),
+    /// Remember this source language as the most recently picked one.
+    RememberSource(String),
+    /// Translate with this backend from now on and remember it in the config. Comes before
+    /// the [`Effect::StartTranslation`] that must use it.
+    SwitchBackend(BackendKind),
     /// Remember the splitter ratio in the config.
     PersistSplitter(f32),
     /// Give iced focus to a pane's text editor, or unfocus both when `None`.
@@ -241,6 +265,9 @@ impl Effect {
 pub struct Popup {
     languages: Languages,
     backend: BackendInfo,
+    alternate: Option<BackendInfo>,
+    recent_sources: Vec<&'static str>,
+    recent_targets: Vec<&'static str>,
     theme: Theme,
     /// `None` means auto-detect.
     source_lang: Option<&'static str>,
@@ -268,6 +295,9 @@ impl Popup {
         let mut popup = Self {
             languages: options.languages,
             backend: options.backend.clone(),
+            alternate: None,
+            recent_sources: Vec::new(),
+            recent_targets: Vec::new(),
             theme: options.theme.clone(),
             source_lang: None,
             target_lang: "",
@@ -300,7 +330,15 @@ impl Popup {
         self.cancel_current(&mut fx);
         self.target_lang = resolve_target(&options.languages, &options.target_lang);
         self.persisted_target = self.target_lang;
+        self.recent_targets = resolve_recent(options.languages.targets, &options.recent_targets);
+        self.recent_sources = resolve_recent(options.languages.sources, &options.recent_sources);
         self.languages = options.languages;
+        // The switch only makes sense between two different, usable backends.
+        self.alternate = options.alternate.filter(|alternate| {
+            alternate.configured
+                && options.backend.configured
+                && alternate.kind != options.backend.kind
+        });
         self.backend = options.backend;
         self.theme = options.theme;
         self.source_lang = None;
@@ -336,6 +374,7 @@ impl Popup {
                 if generation == self.generation {
                     self.persist_target(&mut fx);
                     self.request_translation(&mut fx);
+                    self.remember_source(&mut fx);
                 }
             }
             Message::Chunk { id, chunk } => self.chunk(id, chunk),
@@ -366,6 +405,11 @@ impl Popup {
             Message::SelectorOpened(control) => {
                 self.focus = Some(control);
                 fx.push(Effect::Focus(None));
+            }
+            Message::SelectorClosed(control) => self.focus = Some(control),
+            Message::BackendToggled => {
+                self.focus = Some(Control::Backend);
+                self.switch_backend(&mut fx);
             }
             Message::SwapPressed => {
                 self.focus = Some(Control::Swap);
@@ -408,6 +452,26 @@ impl Popup {
     /// Current target code.
     pub fn target_lang(&self) -> &'static str {
         self.target_lang
+    }
+
+    /// Recently picked targets, newest first, shown above the full target list.
+    pub fn recent_targets(&self) -> &[&'static str] {
+        &self.recent_targets
+    }
+
+    /// Recently picked sources, newest first, shown above the full source list.
+    pub fn recent_sources(&self) -> &[&'static str] {
+        &self.recent_sources
+    }
+
+    /// The backend translating in this popup.
+    pub fn backend(&self) -> &BackendInfo {
+        &self.backend
+    }
+
+    /// The backend the switch changes to, when both DeepL and AI are set up.
+    pub fn alternate_backend(&self) -> Option<&BackendInfo> {
+        self.alternate.as_ref()
     }
 
     /// Language detected by the backend for the current text, if reported.
@@ -589,19 +653,40 @@ impl Popup {
 
     fn persist_target(&mut self, fx: &mut Vec<Effect>) {
         if self.target_lang != self.persisted_target {
-            self.persisted_target = self.target_lang;
-            fx.push(Effect::PersistTarget(self.target_lang.to_owned()));
+            self.record_target(fx);
+        }
+    }
+
+    /// Persists the current target and makes it the most recent one.
+    fn record_target(&mut self, fx: &mut Vec<Effect>) {
+        self.persisted_target = self.target_lang;
+        language::push_recent(
+            &mut self.recent_targets,
+            self.target_lang,
+            MAX_RECENT_LANGUAGES,
+        );
+        fx.push(Effect::PersistTarget(self.target_lang.to_owned()));
+    }
+
+    /// Makes an explicitly chosen source the most recent one. Auto-detect is not a language.
+    fn remember_source(&mut self, fx: &mut Vec<Effect>) {
+        let Some(code) = self.source_lang else {
+            return;
+        };
+        if self.recent_sources.first() != Some(&code) {
+            language::push_recent(&mut self.recent_sources, code, MAX_RECENT_LANGUAGES);
+            fx.push(Effect::RememberSource(code.to_owned()));
         }
     }
 
     fn set_source(&mut self, code: Option<&'static str>, fx: &mut Vec<Effect>) {
         let code = code.and_then(|c| find(self.languages.sources, c));
-        if code == self.source_lang {
-            return;
+        if code != self.source_lang {
+            self.source_lang = code;
+            self.detected = None;
+            self.request_translation(fx);
         }
-        self.source_lang = code;
-        self.detected = None;
-        self.request_translation(fx);
+        self.remember_source(fx);
     }
 
     fn set_target(&mut self, code: &'static str, fx: &mut Vec<Effect>) {
@@ -612,7 +697,31 @@ impl Popup {
             self.target_lang = code;
             self.request_translation(fx);
         }
-        self.persist_target(fx);
+        // An explicit pick always becomes the most recent target, even when it was already
+        // the current one (for example the locale default).
+        if self.target_lang != self.persisted_target
+            || self.recent_targets.first() != Some(&self.target_lang)
+        {
+            self.record_target(fx);
+        }
+    }
+
+    /// Flips between the active and the alternate backend and translates the current text
+    /// again with the new one.
+    fn switch_backend(&mut self, fx: &mut Vec<Effect>) {
+        let Some(next) = self.alternate.take() else {
+            return;
+        };
+        // Results still arriving from the old backend must not reach the pane.
+        self.cancel_current(fx);
+        let previous = std::mem::replace(&mut self.backend, next);
+        self.alternate = Some(previous);
+        fx.push(Effect::SwitchBackend(self.backend.kind));
+        self.detected = None;
+        // The same text and languages must be sent again, to the new backend.
+        self.last_request = None;
+        self.status = self.idle_status();
+        self.request_translation(fx);
     }
 
     /// Target for a swap: the explicit source, or the detected one when on auto.
@@ -640,6 +749,7 @@ impl Popup {
         self.detected = None;
         self.persist_target(fx);
         self.request_translation(fx);
+        self.remember_source(fx);
     }
 
     /// Selection in the focused pane first, then the translation pane, then the source pane.
@@ -688,6 +798,7 @@ impl Popup {
         let not_configured = self.status == TranslationStatus::NotConfigured;
         match control {
             Control::Swap => self.can_swap(),
+            Control::Backend => self.alternate.is_some(),
             Control::Copy => self.can_copy_all(),
             Control::SourcePane => !self.capture_pending,
             Control::TranslationPane => !not_configured,
@@ -739,11 +850,13 @@ impl Popup {
                 if activate {
                     self.persist_target(fx);
                     self.request_translation(fx);
+                    self.remember_source(fx);
                 } else {
                     self.step_language(control, key, fx);
                 }
             }
             Control::Swap if activate => self.swap(fx),
+            Control::Backend if activate => self.switch_backend(fx),
             Control::Copy if activate => self.copy_all(fx),
             Control::Settings | Control::HeaderSettings if activate => self.open_settings(fx),
             Control::Splitter => {
@@ -849,6 +962,12 @@ fn find(list: &'static [Language], code: &str) -> Option<&'static str> {
     list.iter()
         .find(|l| l.code.eq_ignore_ascii_case(code))
         .map(|l| l.code)
+}
+
+/// Codes from `codes` that are in `list`, canonical, without duplicates and at most
+/// [`MAX_RECENT_LANGUAGES`], in their stored order.
+fn resolve_recent(list: &'static [Language], codes: &[String]) -> Vec<&'static str> {
+    language::sanitize_recent(codes, |code| find(list, code.trim()))
 }
 
 fn resolve_target(languages: &Languages, code: &str) -> &'static str {

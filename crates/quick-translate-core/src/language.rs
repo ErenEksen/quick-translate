@@ -138,6 +138,39 @@ pub fn source_to_target(code: &str) -> Option<&'static str> {
     Some(mapped)
 }
 
+/// The DeepL target for a stored code: a target code as is (`TR`, `EN-GB`), a source code
+/// mapped to its default target (`EN` -> `EN-US`), `None` when unknown.
+pub fn normalize_target(code: &str) -> Option<&'static str> {
+    target_by_code(code)
+        .map(|l| l.code)
+        .or_else(|| source_to_target(code))
+}
+
+/// Moves `item` to the front of a most-recently-used list, keeping at most `max` entries.
+pub fn push_recent<T: PartialEq>(list: &mut Vec<T>, item: T, max: usize) {
+    list.retain(|existing| *existing != item);
+    list.insert(0, item);
+    list.truncate(max);
+}
+
+/// Resolves stored recent codes with `resolve`, dropping unknown codes and duplicates and
+/// keeping at most [`crate::config::MAX_RECENT_LANGUAGES`] entries, in their stored order.
+pub fn sanitize_recent(
+    codes: &[String],
+    resolve: impl Fn(&str) -> Option<&'static str>,
+) -> Vec<&'static str> {
+    let mut out: Vec<&'static str> = Vec::new();
+    for code in codes.iter().filter_map(|c| resolve(c)) {
+        if out.len() == crate::config::MAX_RECENT_LANGUAGES {
+            break;
+        }
+        if !out.contains(&code) {
+            out.push(code);
+        }
+    }
+    out
+}
+
 pub fn target_to_source(code: &str) -> Option<&'static str> {
     let target = target_by_code(code)?;
     let base = target.code.split('-').next().unwrap_or(target.code);
@@ -295,6 +328,42 @@ mod tests {
             assert!(source_to_target(s.code).is_some(), "{}", s.code);
         }
         assert!(source_languages().iter().all(|l| !l.code.contains('-')));
+    }
+
+    #[test]
+    fn push_recent_is_most_recently_used() {
+        let mut list = Vec::new();
+        push_recent(&mut list, "A", 3);
+        push_recent(&mut list, "B", 3);
+        push_recent(&mut list, "C", 3);
+        assert_eq!(list, ["C", "B", "A"]);
+        push_recent(&mut list, "A", 3);
+        assert_eq!(list, ["A", "C", "B"]);
+        push_recent(&mut list, "A", 3);
+        assert_eq!(list, ["A", "C", "B"]);
+        push_recent(&mut list, "D", 3);
+        assert_eq!(list, ["D", "A", "C"]);
+        let mut empty: Vec<&str> = Vec::new();
+        push_recent(&mut empty, "X", 0);
+        assert!(empty.is_empty());
+    }
+
+    #[test]
+    fn normalize_and_sanitize_recent() {
+        assert_eq!(normalize_target("tr"), Some("TR"));
+        assert_eq!(normalize_target("EN"), Some("EN-US"));
+        assert_eq!(normalize_target("zh-hant"), Some("ZH-HANT"));
+        assert_eq!(normalize_target(""), None);
+        assert_eq!(normalize_target("XX"), None);
+        let codes: Vec<String> = ["de", "DE", "x", "pt", "TR", "JA"]
+            .iter()
+            .map(|s| (*s).to_owned())
+            .collect();
+        assert_eq!(
+            sanitize_recent(&codes, normalize_target),
+            ["DE", "PT-BR", "TR"]
+        );
+        assert!(sanitize_recent(&[], normalize_target).is_empty());
     }
 
     #[test]

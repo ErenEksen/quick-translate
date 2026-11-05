@@ -161,7 +161,10 @@ quick-translate requires a Wayland session: WAYLAND_DISPLAY is not set (X11 is n
   `$XDG_CONFIG_HOME/quick-translate/config.toml` (default
   `~/.config/quick-translate/config.toml`). The file is created when you first save settings.
   A malformed file is not overwritten: the daemon runs with defaults and tells you about the
-  parse error. API keys are stored in the keyring, never in this file.
+  parse error. API keys are stored in the keyring, never in this file. The popup also keeps
+  its own choices there: the size, the splitter, the target language, the backend picked with
+  the DeepL/AI switch, and `recent-targets` / `recent-sources`, the three languages picked most
+  recently in each menu, newest first. Unknown codes in those lists are ignored.
 - **Removal.** `quick-translate --remove-integration` stops the daemon and removes the
   `.desktop` file, icon and autostart entry. It keeps `config.toml` and the keys in your
   keyring. To remove everything, also delete the AppImage (or the Nix profile entry), the

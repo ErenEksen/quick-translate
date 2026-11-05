@@ -27,6 +27,14 @@ pub struct Config {
     pub backend: BackendKind,
     /// Target language code (DeepL target code such as `EN-US`, `TR`). `None` means derive from locale.
     pub target_lang: Option<String>,
+    /// Target languages the user picked most recently, newest first (at most
+    /// [`MAX_RECENT_LANGUAGES`]). The popup lists them above the full list.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub recent_targets: Vec<String>,
+    /// Source languages the user picked most recently, newest first (at most
+    /// [`MAX_RECENT_LANGUAGES`]).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub recent_sources: Vec<String>,
     pub deepl: DeeplConfig,
     pub openai: OpenAiConfig,
     pub popup: PopupConfig,
@@ -69,12 +77,16 @@ pub const DEFAULT_OPENAI_BASE_URL: &str = "https://api.openai.com/v1";
 pub const DEFAULT_OPENAI_MODEL: &str = "gpt-4o-mini";
 /// Default total request timeout in seconds.
 pub const DEFAULT_REQUEST_TIMEOUT_SECS: u64 = 30;
+/// How many recently picked languages the popup offers above the full list.
+pub const MAX_RECENT_LANGUAGES: usize = 3;
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             backend: BackendKind::Deepl,
             target_lang: None,
+            recent_targets: Vec::new(),
+            recent_sources: Vec::new(),
             deepl: DeeplConfig::default(),
             openai: OpenAiConfig::default(),
             popup: PopupConfig::default(),
@@ -93,6 +105,24 @@ impl Default for OpenAiConfig {
             allow_insecure: false,
         }
     }
+}
+
+impl OpenAiConfig {
+    /// The endpoint is set up well enough to offer it next to DeepL in the popup: base URL and
+    /// model are set, and either an API key is stored or the base URL is not the default OpenAI
+    /// endpoint (local servers such as Ollama or LM Studio need no key).
+    pub fn is_set_up(&self, has_key: bool) -> bool {
+        let base_url = self.base_url.trim();
+        if base_url.is_empty() || self.model.trim().is_empty() {
+            return false;
+        }
+        has_key || !is_default_openai_url(base_url)
+    }
+}
+
+fn is_default_openai_url(url: &str) -> bool {
+    url.trim_end_matches('/')
+        .eq_ignore_ascii_case(DEFAULT_OPENAI_BASE_URL)
 }
 
 impl Default for PopupConfig {
@@ -116,12 +146,40 @@ impl Config {
     pub fn effective_target_lang_from(&self, env: impl Fn(&str) -> Option<String>) -> &'static str {
         self.target_lang
             .as_deref()
-            .and_then(|code| {
-                language::target_by_code(code)
-                    .map(|l| l.code)
-                    .or_else(|| language::source_to_target(code))
-            })
+            .and_then(language::normalize_target)
             .unwrap_or_else(|| language::default_target_from(env))
+    }
+
+    /// Stores `code` as the target and moves it to the front of the recent targets.
+    pub fn remember_target(&mut self, code: &str) {
+        self.target_lang = Some(code.to_owned());
+        if let Some(code) = language::normalize_target(code) {
+            let mut recent = self.recent_targets();
+            language::push_recent(&mut recent, code, MAX_RECENT_LANGUAGES);
+            self.recent_targets = recent.into_iter().map(str::to_owned).collect();
+        }
+    }
+
+    /// Moves the source `code` to the front of the recent sources.
+    pub fn remember_source(&mut self, code: &str) {
+        if let Some(language) = language::source_by_code(code) {
+            let mut recent = self.recent_sources();
+            language::push_recent(&mut recent, language.code, MAX_RECENT_LANGUAGES);
+            self.recent_sources = recent.into_iter().map(str::to_owned).collect();
+        }
+    }
+
+    /// The recent targets that are known DeepL targets, without duplicates, newest first.
+    /// Hand-edited or outdated entries are dropped.
+    pub fn recent_targets(&self) -> Vec<&'static str> {
+        language::sanitize_recent(&self.recent_targets, language::normalize_target)
+    }
+
+    /// The recent sources that are known DeepL sources, without duplicates, newest first.
+    pub fn recent_sources(&self) -> Vec<&'static str> {
+        language::sanitize_recent(&self.recent_sources, |code| {
+            language::source_by_code(code).map(|l| l.code)
+        })
     }
 }
 
@@ -256,6 +314,8 @@ impl ConfigStore {
 fn schema() -> DocumentMut {
     let mut full = Config {
         target_lang: Some(String::new()),
+        recent_targets: vec![String::new()],
+        recent_sources: vec![String::new()],
         ..Config::default()
     };
     full.deepl.cached_host = Some(String::new());
@@ -345,6 +405,8 @@ mod tests {
         Config {
             backend: BackendKind::Openai,
             target_lang: Some("DE".into()),
+            recent_targets: vec!["DE".into(), "TR".into()],
+            recent_sources: vec!["EN".into()],
             deepl: DeeplConfig {
                 cached_host: Some("api-free.deepl.com".into()),
             },
@@ -587,6 +649,162 @@ list = [1, 2, 3]
         assert_eq!(c.effective_target_lang_from(env), "EN-US");
         c.target_lang = Some("bogus".into());
         assert_eq!(c.effective_target_lang_from(env), "TR");
+    }
+
+    #[test]
+    fn remember_target_keeps_three_most_recent_first() {
+        let mut c = Config::default();
+        c.remember_target("TR");
+        assert_eq!(c.target_lang.as_deref(), Some("TR"));
+        assert_eq!(c.recent_targets, ["TR"]);
+        c.remember_target("DE");
+        c.remember_target("FR");
+        assert_eq!(c.recent_targets, ["FR", "DE", "TR"]);
+        // Re-picking moves it to the front without duplicating it.
+        c.remember_target("TR");
+        assert_eq!(c.recent_targets, ["TR", "FR", "DE"]);
+        // A fourth language pushes the oldest out.
+        c.remember_target("JA");
+        assert_eq!(c.recent_targets, ["JA", "TR", "FR"]);
+        assert_eq!(c.target_lang.as_deref(), Some("JA"));
+        // Codes are normalized; a source code maps to its target.
+        c.remember_target("en");
+        assert_eq!(c.recent_targets, ["EN-US", "JA", "TR"]);
+        assert_eq!(c.effective_target_lang_from(|_| None), "EN-US");
+    }
+
+    #[test]
+    fn remember_target_ignores_unknown_codes_for_recents() {
+        let mut c = Config::default();
+        c.remember_target("DE");
+        c.remember_target("bogus");
+        assert_eq!(c.target_lang.as_deref(), Some("bogus"));
+        assert_eq!(c.recent_targets, ["DE"]);
+    }
+
+    #[test]
+    fn remember_source_keeps_three_most_recent_first() {
+        let mut c = Config::default();
+        for code in ["en", "DE", "TR", "DE", "JA"] {
+            c.remember_source(code);
+        }
+        assert_eq!(c.recent_sources, ["JA", "DE", "TR"]);
+        // Target-only codes and unknown codes are not sources.
+        c.remember_source("EN-US");
+        c.remember_source("xx");
+        assert_eq!(c.recent_sources, ["JA", "DE", "TR"]);
+        // The target is not touched.
+        assert_eq!(c.target_lang, None);
+    }
+
+    #[test]
+    fn hand_edited_recents_are_sanitized() {
+        let c = Config {
+            recent_targets: vec![
+                "tr".into(),
+                "nope".into(),
+                "TR".into(),
+                "en".into(),
+                "DE".into(),
+                "FR".into(),
+            ],
+            recent_sources: vec!["EN-GB".into(), "pt".into(), "PT".into(), "".into()],
+            ..Config::default()
+        };
+        assert_eq!(c.recent_targets(), ["TR", "EN-US", "DE"]);
+        assert_eq!(c.recent_sources(), ["PT"]);
+        // Remembering cleans the stored list as well.
+        let mut c = c;
+        c.remember_target("JA");
+        assert_eq!(c.recent_targets, ["JA", "TR", "EN-US"]);
+        c.remember_source("DE");
+        assert_eq!(c.recent_sources, ["DE", "PT"]);
+    }
+
+    #[test]
+    fn recents_round_trip_and_empty_lists_leave_no_key() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let mut store = store(&dir);
+        store.load();
+        store.save(&Config::default()).expect("save");
+        let text = fs::read_to_string(store.path()).expect("read");
+        assert!(!text.contains("recent"), "{text}");
+
+        let mut config = Config::default();
+        config.remember_target("DE");
+        config.remember_target("TR");
+        config.remember_source("EN");
+        store.save(&config).expect("save");
+        let text = fs::read_to_string(store.path()).expect("read");
+        assert!(text.contains("recent-targets = [\"TR\", \"DE\"]"), "{text}");
+        assert!(text.contains("recent-sources = [\"EN\"]"), "{text}");
+        // Top-level keys stay above the tables, so the file stays valid TOML.
+        let doc: DocumentMut = text.parse().expect("valid toml");
+        assert!(doc["recent-targets"].is_array());
+        let mut reloaded = ConfigStore::new(store.path());
+        assert!(matches!(reloaded.load(), LoadOutcome::Loaded(c) if c == config));
+    }
+
+    #[test]
+    fn recents_are_added_to_an_existing_file_without_disturbing_it() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let mut store = store(&dir);
+        fs::create_dir_all(store.path().parent().expect("parent")).expect("mkdir");
+        let original = "# mine\nbackend = \"deepl\"\n\n[popup]\nwidth = 640.0\n";
+        fs::write(store.path(), original).expect("write");
+        let mut config = store.load().config().clone();
+        config.remember_target("DE");
+        store.save(&config).expect("save");
+        let text = fs::read_to_string(store.path()).expect("read");
+        assert!(text.starts_with("# mine\n"), "{text}");
+        let doc: DocumentMut = text.parse().expect("valid toml");
+        assert_eq!(doc["recent-targets"][0].as_str(), Some("DE"));
+        assert_eq!(doc["popup"]["width"].as_float(), Some(640.0));
+        let mut reloaded = ConfigStore::new(store.path());
+        assert!(matches!(reloaded.load(), LoadOutcome::Loaded(c) if c == config));
+    }
+
+    #[test]
+    fn recents_with_wrong_types_are_malformed() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let mut store = store(&dir);
+        fs::create_dir_all(store.path().parent().expect("parent")).expect("mkdir");
+        fs::write(store.path(), "recent-targets = \"DE\"\n").expect("write");
+        assert!(matches!(store.load(), LoadOutcome::Malformed { .. }));
+        fs::write(store.path(), "recent-sources = [1, 2]\n").expect("write");
+        assert!(matches!(store.load(), LoadOutcome::Malformed { .. }));
+    }
+
+    #[test]
+    fn openai_set_up_needs_a_key_or_a_custom_endpoint() {
+        let default = OpenAiConfig::default();
+        assert!(
+            !default.is_set_up(false),
+            "untouched defaults are not set up"
+        );
+        assert!(default.is_set_up(true));
+        let trailing = OpenAiConfig {
+            base_url: "HTTPS://api.openai.com/v1/ ".into(),
+            ..OpenAiConfig::default()
+        };
+        assert!(!trailing.is_set_up(false));
+        let local = OpenAiConfig {
+            base_url: "http://localhost:11434/v1".into(),
+            model: "llama3".into(),
+            allow_insecure: false,
+        };
+        assert!(local.is_set_up(false));
+        assert!(local.is_set_up(true));
+        let no_model = OpenAiConfig {
+            model: "  ".into(),
+            ..local.clone()
+        };
+        assert!(!no_model.is_set_up(true));
+        let no_url = OpenAiConfig {
+            base_url: String::new(),
+            ..local
+        };
+        assert!(!no_url.is_set_up(true));
     }
 
     #[test]
