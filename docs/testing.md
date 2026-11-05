@@ -474,16 +474,17 @@ General limits:
 
 ## Release dry run
 
-Task 9.4: `.github/workflows/release.yml` runs on a `v*` tag (and manually through
+Task 9.4: `.github/workflows/release.yml` runs on pushes to `main` and builds only when
+the Cargo workspace version has no `v<version>` tag yet (and manually through
 `workflow_dispatch`, which is a dry run that skips the `release` job). Jobs:
 
 | Job | Runs in | What it does |
 |---|---|---|
-| `version` | ubuntu-24.04 | Version = tag without `v`; fails unless it equals `[workspace.package] version` |
+| `version` | ubuntu-24.04 | Version = `[workspace.package] version`; on a push, the build is skipped when `v<version>` already exists |
 | `appimage` | `ubuntu:22.04` job container | `build.sh --no-container --install-deps --update-info "gh-releases-zsync\|<owner>\|<repo>\|latest\|…"`, uploads the AppImage, `.zsync` and standalone binary (copied from the AppDir) |
 | `smoke` | `ubuntu:22.04`, `debian:12`, `fedora:44` job containers (no FUSE) | `smoke-test.sh --no-audit --require-zsync <AppImage> <version>` on the bare image, `--version` of the standalone binary, then binutils and `audit.sh` |
 | `nix` | ubuntu-24.04 + `cachix/install-nix-action@v31` | `nix build`, `nix run . -- --version` must print `quick-translate <version>` |
-| `release` | ubuntu-24.04, tag pushes only, `contents: write` | `SHA256SUMS`, then `softprops/action-gh-release@v2` with the AppImage, `.zsync`, binary and `SHA256SUMS` (prerelease when the version has a `-`) |
+| `release` | ubuntu-24.04, pushes only, `contents: write` | `SHA256SUMS`, then `softprops/action-gh-release@v2` creates the `v<version>` tag and a regular release with the AppImage, `.zsync`, binary and `SHA256SUMS` |
 
 `packaging/appimage/smoke-test.sh [--audit|--no-audit] [--require-zsync] <AppImage> [expected-version]`
 is shared by CI and local runs. Every launch uses `env -i` with a throwaway `HOME`,

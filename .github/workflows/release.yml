@@ -1,16 +1,18 @@
 name: Release
 
-# tasks.md 9.4, design D11. A `v*` tag builds the AppImage, its .zsync and the
-# standalone binary in ubuntu:22.04 (the glibc 2.35 baseline), smoke-tests them in
-# Ubuntu 22.04, Debian 12 and Fedora containers, builds and runs the Nix flake, and
-# attaches the AppImage, .zsync, binary and SHA256SUMS to the GitHub Release for the tag. The release
+# tasks.md 9.4, design D11. A push to main whose Cargo workspace version has no `v<version>`
+# tag yet builds the AppImage, its .zsync and the standalone binary in ubuntu:22.04 (the
+# glibc 2.35 baseline), smoke-tests them in Ubuntu 22.04, Debian 12 and Fedora containers,
+# builds and runs the Nix flake, and
+# attaches the AppImage, .zsync, binary and SHA256SUMS to a new GitHub Release, which creates
+# the tag. To release, bump the version; pushes that keep it build nothing. The release
 # is always published as a regular release marked as the latest one, never as a
 # prerelease or a draft.
 # A manual run (workflow_dispatch) is a dry run: every job but `release`.
 
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -34,27 +36,26 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.version.outputs.version }}
+      build: ${{ steps.version.outputs.build }}
       appimage: ${{ steps.version.outputs.appimage }}
       binary: ${{ steps.version.outputs.binary }}
     steps:
       - uses: actions/checkout@v4
-      - name: Derive the version and check it against Cargo.toml
+      - name: Read the version and check whether it is already released
         id: version
         run: |
-          cargo_version="$(sed -n '/^\[workspace\.package\]/,/^\[/{s/^version *= *"\([^"]*\)".*/\1/p}' Cargo.toml | head -n1)"
-          [ -n "$cargo_version" ] || { echo "::error::no [workspace.package] version in Cargo.toml"; exit 1; }
-          if [ "$GITHUB_REF_TYPE" = tag ]; then
-            version="${GITHUB_REF_NAME#v}"
-            if [ "$version" != "$cargo_version" ]; then
-              echo "::error::tag $GITHUB_REF_NAME does not match the Cargo workspace version $cargo_version"
-              exit 1
-            fi
-          else
-            version="$cargo_version"
-            echo "::notice::not a tag ($GITHUB_REF_NAME): dry run for version $version, nothing is released"
+          version="$(sed -n '/^\[workspace\.package\]/,/^\[/{s/^version *= *"\([^"]*\)".*/\1/p}' Cargo.toml | head -n1)"
+          [ -n "$version" ] || { echo "::error::no [workspace.package] version in Cargo.toml"; exit 1; }
+          build=true
+          if [ "$GITHUB_EVENT_NAME" != push ]; then
+            echo "::notice::dry run for version $version, nothing is released"
+          elif [ -n "$(git ls-remote --tags origin "refs/tags/v$version")" ]; then
+            echo "::notice::v$version is already released, bump the version to release again"
+            build=false
           fi
           {
             echo "version=$version"
+            echo "build=$build"
             echo "appimage=quick-translate-$version-x86_64.AppImage"
             echo "binary=quick-translate-$version-x86_64"
           } >> "$GITHUB_OUTPUT"
@@ -63,6 +64,7 @@ jobs:
   appimage:
     name: Build AppImage
     needs: version
+    if: needs.version.outputs.build == 'true'
     runs-on: ubuntu-24.04
     container: ubuntu:22.04
     steps:
@@ -145,6 +147,7 @@ jobs:
   nix:
     name: Nix flake
     needs: version
+    if: needs.version.outputs.build == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -167,7 +170,7 @@ jobs:
   release:
     name: GitHub Release
     needs: [version, appimage, smoke, nix]
-    if: github.event_name == 'push' && github.ref_type == 'tag'
+    if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -187,6 +190,8 @@ jobs:
           cat SHA256SUMS
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ needs.version.outputs.version }}
+          target_commitish: ${{ github.sha }}
           files: |
             dist/${{ needs.version.outputs.appimage }}
             dist/${{ needs.version.outputs.appimage }}.zsync
@@ -194,7 +199,7 @@ jobs:
             dist/SHA256SUMS
           fail_on_unmatched_files: true
           generate_release_notes: true
-          # A regular release, also for tags such as v1.0.0-rc1. It must be the latest one:
+          # A regular release, also for versions such as 1.0.0-rc1. It must be the latest one:
           # the AppImage's update information (gh-releases-zsync|…|latest) and the
           # README's releases link resolve to the latest regular release only.
           draft: false
