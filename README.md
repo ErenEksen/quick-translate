@@ -39,7 +39,7 @@ chmod +x quick-translate-*-x86_64.AppImage
 
 **Nix**: `nix run github:ErenEksen/quick-translate`
 
-**From source** (Rust 1.90+, `pkg-config`, Wayland and xkbcommon development files):
+**From source** (Rust 1.95+, `pkg-config`, Wayland and xkbcommon development files):
 
 ```sh
 cargo build --release -p quick-translate

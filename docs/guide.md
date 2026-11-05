@@ -219,7 +219,7 @@ which popup shell and shortcut mechanism the daemon uses.
 
 ## Building from source
 
-Requirements: Rust 1.90 or newer, `pkg-config`, and the Wayland and xkbcommon development
+Requirements: Rust 1.95 or newer, `pkg-config`, and the Wayland and xkbcommon development
 files (Arch: `pacman -S --needed rust pkgconf wayland libxkbcommon`; Debian/Ubuntu:
 `apt install pkg-config libwayland-dev libxkbcommon-dev`).
 
