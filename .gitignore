@@ -7,3 +7,5 @@
 *.AppImage
 *.zsync
 .direnv/
+/openspec/
+/.claude/
