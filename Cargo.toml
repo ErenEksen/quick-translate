@@ -87,3 +87,6 @@ strip = true
 # BGRA). Drop it once softbuffer exposes an alpha mode that iced_tiny_skia requests.
 [patch.crates-io]
 softbuffer = { path = "patches/softbuffer" }
+# The damage rectangle of aligned cached text ignored its alignment, so a shrinking pick_list
+# label left half of its old glyphs on the layer-shell popup. See patches/iced_graphics/README.md.
+iced_graphics = { path = "patches/iced_graphics" }
