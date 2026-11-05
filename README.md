@@ -13,7 +13,7 @@ project and is not affiliated with DeepL.
 
 | DeepL | Any OpenAI-compatible model |
 |---|---|
-| ![Popup with DeepL](docs/screenshots/deepl.webp) | ![Popup with an AI model](docs/screenshots/openai.webp) |
+| ![Popup with DeepL](docs/screenshots/deepl.png) | ![Popup with an AI model](docs/screenshots/openai.png) |
 
 ## Features
 
