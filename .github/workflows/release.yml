@@ -3,7 +3,9 @@ name: Release
 # tasks.md 9.4, design D11. A `v*` tag builds the AppImage and its .zsync in
 # ubuntu:22.04 (the glibc 2.35 baseline), smoke-tests them in Ubuntu 22.04,
 # Debian 12 and Fedora containers, builds and runs the Nix flake, and attaches
-# the AppImage, .zsync and SHA256SUMS to the GitHub Release for the tag.
+# the AppImage, .zsync and SHA256SUMS to the GitHub Release for the tag. The release
+# is always published as a regular release marked as the latest one, never as a
+# prerelease or a draft.
 # A manual run (workflow_dispatch) is a dry run: every job but `release`.
 
 on:
@@ -172,4 +174,9 @@ jobs:
             dist/SHA256SUMS
           fail_on_unmatched_files: true
           generate_release_notes: true
-          prerelease: ${{ contains(needs.version.outputs.version, '-') }}
+          # A regular release, also for tags such as v1.0.0-rc1. It must be the latest one:
+          # the AppImage's update information (gh-releases-zsync|…|latest) and the
+          # README's releases link resolve to the latest regular release only.
+          draft: false
+          prerelease: false
+          make_latest: "true"
